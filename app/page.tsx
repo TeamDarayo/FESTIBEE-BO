@@ -14,6 +14,12 @@ export default function Home() {
           >
             Manage Festivals
           </Link>
+          <Link 
+            href="/artists" 
+            className="inline-block bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Manage Artists
+          </Link>
         </div>
       </div>
     </main>
