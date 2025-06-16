@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { format } from 'date-fns';
 import React from 'react';
 
 interface FestivalFormProps {
@@ -145,268 +146,362 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">{initialData ? 'Edit Festival' : 'Add New Festival'}</h2>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {initialData ? '페스티벌 수정' : '새 페스티벌 추가'}
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onCancel}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </Button>
+          </div>
+        </div>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">이름</Label>
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-medium text-gray-700">이름</Label>
               <Input
                 id="name"
                 required
                 value={formData.name}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                placeholder="페스티벌 이름을 입력하세요"
               />
             </div>
 
-            <div>
-              <Label htmlFor="placeName">장소명</Label>
+            <div className="space-y-2">
+              <Label htmlFor="placeName" className="text-sm font-medium text-gray-700">장소명</Label>
               <Input
                 id="placeName"
                 required
                 value={formData.placeName}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, placeName: e.target.value }))}
+                className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                placeholder="장소명을 입력하세요"
               />
             </div>
 
-            <div>
-              <Label htmlFor="placeAddress">주소</Label>
+            <div className="space-y-2">
+              <Label htmlFor="placeAddress" className="text-sm font-medium text-gray-700">주소</Label>
               <Input
                 id="placeAddress"
                 required
                 value={formData.placeAddress}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, placeAddress: e.target.value }))}
+                className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                placeholder="주소를 입력하세요"
               />
             </div>
 
-            <div>
-              <Label htmlFor="startDate">시작일</Label>
+            <div className="space-y-2">
+              <Label htmlFor="startDate" className="text-sm font-medium text-gray-700">시작일</Label>
               <Input
                 id="startDate"
                 type="date"
                 required
                 value={formData.startDate}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
-            <div>
-              <Label htmlFor="endDate">종료일</Label>
+            <div className="space-y-2">
+              <Label htmlFor="endDate" className="text-sm font-medium text-gray-700">종료일</Label>
               <Input
                 id="endDate"
                 type="date"
                 required
                 value={formData.endDate}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
-            <div>
-              <Label htmlFor="posterUrl">포스터 URL</Label>
+            <div className="space-y-2">
+              <Label htmlFor="posterUrl" className="text-sm font-medium text-gray-700">포스터 URL</Label>
               <Input
                 id="posterUrl"
                 required
                 value={formData.posterUrl}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, posterUrl: e.target.value }))}
+                className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                placeholder="포스터 이미지 URL을 입력하세요"
               />
             </div>
 
-            <div>
-              <Label htmlFor="banGoods">금지물품</Label>
+            <div className="space-y-2">
+              <Label htmlFor="banGoods" className="text-sm font-medium text-gray-700">금지물품</Label>
               <Input
                 id="banGoods"
                 value={formData.banGoods}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, banGoods: e.target.value }))}
+                className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                placeholder="금지물품 목록을 입력하세요"
               />
             </div>
 
-            <div>
-              <Label htmlFor="transportationInfo">교통정보</Label>
+            <div className="space-y-2">
+              <Label htmlFor="transportationInfo" className="text-sm font-medium text-gray-700">교통정보</Label>
               <Input
                 id="transportationInfo"
                 value={formData.transportationInfo}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, transportationInfo: e.target.value }))}
+                className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                placeholder="교통정보를 입력하세요"
               />
             </div>
 
-            <div className="md:col-span-2">
-              <Label htmlFor="remark">비고</Label>
+            <div className="md:col-span-2 space-y-2">
+              <Label htmlFor="remark" className="text-sm font-medium text-gray-700">비고</Label>
               <Textarea
                 id="remark"
                 value={formData.remark}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ ...prev, remark: e.target.value }))}
+                className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                placeholder="추가 정보를 입력하세요"
+                rows={3}
               />
             </div>
           </div>
 
           {/* 타임테이블 섹션 */}
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold mb-4">타임테이블</h3>
+          <div className="border-t border-gray-200 pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">타임테이블</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <Label htmlFor="performanceDate">공연일자</Label>
+              <div className="space-y-2">
+                <Label htmlFor="performanceDate" className="text-sm font-medium text-gray-700">공연일자</Label>
                 <Input
                   id="performanceDate"
                   type="date"
                   value={newTimeTable.performanceDate}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTimeTable(prev => ({ ...prev, performanceDate: e.target.value }))}
+                  onChange={(e) => setNewTimeTable(prev => ({ ...prev, performanceDate: e.target.value }))}
+                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
-              <div>
-                <Label htmlFor="performanceHall">공연장</Label>
+
+              <div className="space-y-2">
+                <Label htmlFor="performanceHall" className="text-sm font-medium text-gray-700">공연장</Label>
                 <Input
                   id="performanceHall"
                   value={newTimeTable.performanceHall}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTimeTable(prev => ({ ...prev, performanceHall: e.target.value }))}
+                  onChange={(e) => setNewTimeTable(prev => ({ ...prev, performanceHall: e.target.value }))}
+                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="공연장 이름을 입력하세요"
                 />
               </div>
-              <div>
-                <Label htmlFor="startTime">시작시간</Label>
+
+              <div className="space-y-2">
+                <Label htmlFor="startTime" className="text-sm font-medium text-gray-700">시작 시간</Label>
                 <Input
                   id="startTime"
                   type="time"
                   value={newTimeTable.startTime}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTimeTable(prev => ({ ...prev, startTime: e.target.value }))}
+                  onChange={(e) => setNewTimeTable(prev => ({ ...prev, startTime: e.target.value }))}
+                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
-              <div>
-                <Label htmlFor="endTime">종료시간</Label>
+
+              <div className="space-y-2">
+                <Label htmlFor="endTime" className="text-sm font-medium text-gray-700">종료 시간</Label>
                 <Input
                   id="endTime"
                   type="time"
                   value={newTimeTable.endTime}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTimeTable(prev => ({ ...prev, endTime: e.target.value }))}
+                  onChange={(e) => setNewTimeTable(prev => ({ ...prev, endTime: e.target.value }))}
+                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
             </div>
-            {/* artists 입력 UI */}
-            <div className="mb-2">
-              <div className="flex gap-2 items-end">
-                <div>
-                  <Label htmlFor="artistId">아티스트 ID</Label>
-                  <Input
-                    id="artistId"
-                    value={newArtist.artistId}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewArtist(prev => ({ ...prev, artistId: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="artistType">유형</Label>
-                  <Input
-                    id="artistType"
-                    value={newArtist.type}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewArtist(prev => ({ ...prev, type: e.target.value }))}
-                    placeholder="MAIN 또는 SUB"
-                  />
-                </div>
-                <Button type="button" onClick={handleAddArtistToTimeTable} className="h-10">아티스트 추가</Button>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {newTimeTable.artists.map((artist, idx) => (
-                  <div key={artist.artistId + idx} className="flex items-center bg-gray-100 rounded px-2 py-1">
-                    <span>{artist.artistId} ({artist.type})</span>
-                    <Button type="button" size="sm" variant="destructive" className="ml-2 px-1 py-0.5" onClick={() => handleRemoveArtistFromTimeTable(artist.artistId)}>삭제</Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <Button type="button" onClick={handleAddTimeTable}>타임테이블 추가</Button>
 
-            <div className="mt-4 space-y-2">
-              {formData.timeTables.map((tt) => (
-                <div key={tt.timeTableId} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                  <span>
-                    {tt.performanceDate} {tt.startTime}-{tt.endTime} ({tt.performanceHall})
-                  </span>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleRemoveTimeTable(tt.timeTableId)}
-                  >
-                    삭제
-                  </Button>
-                </div>
-              ))}
+            <div className="flex justify-end mb-4">
+              <Button
+                type="button"
+                onClick={handleAddTimeTable}
+                className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg"
+              >
+                타임테이블 추가
+              </Button>
             </div>
+
+            {formData.timeTables.length > 0 && (
+              <div className="overflow-x-auto rounded-lg border border-gray-200">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">공연일자</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">공연장</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">시작 시간</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">종료 시간</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">아티스트</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">작업</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {formData.timeTables.map((tt) => (
+                      <tr key={tt.timeTableId} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-900">{format(new Date(tt.performanceDate), 'yyyy/MM/dd')}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{tt.performanceHall}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{tt.startTime}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{tt.endTime}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          {tt.artists.map(artist => artist.artistId).join(', ')}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveTimeTable(tt.timeTableId)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            삭제
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* 예매정보 섹션 */}
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold mb-4">예매정보</h3>
+          <div className="border-t border-gray-200 pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">예매정보</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <Label htmlFor="openDateTime">예매시작</Label>
+              <div className="space-y-2">
+                <Label htmlFor="openDateTime" className="text-sm font-medium text-gray-700">예매 시작</Label>
                 <Input
                   id="openDateTime"
                   type="datetime-local"
                   value={newReservationInfo.openDateTime}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewReservationInfo(prev => ({ ...prev, openDateTime: e.target.value }))}
+                  onChange={(e) => setNewReservationInfo(prev => ({ ...prev, openDateTime: e.target.value }))}
+                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
-              <div>
-                <Label htmlFor="closeDateTime">예매종료</Label>
+
+              <div className="space-y-2">
+                <Label htmlFor="closeDateTime" className="text-sm font-medium text-gray-700">예매 종료</Label>
                 <Input
                   id="closeDateTime"
                   type="datetime-local"
                   value={newReservationInfo.closeDateTime}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewReservationInfo(prev => ({ ...prev, closeDateTime: e.target.value }))}
+                  onChange={(e) => setNewReservationInfo(prev => ({ ...prev, closeDateTime: e.target.value }))}
+                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
-              <div>
-                <Label htmlFor="ticketURL">예매URL</Label>
+
+              <div className="space-y-2">
+                <Label htmlFor="ticketURL" className="text-sm font-medium text-gray-700">예매 URL</Label>
                 <Input
                   id="ticketURL"
                   value={newReservationInfo.ticketURL}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewReservationInfo(prev => ({ ...prev, ticketURL: e.target.value }))}
+                  onChange={(e) => setNewReservationInfo(prev => ({ ...prev, ticketURL: e.target.value }))}
+                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="예매 URL을 입력하세요"
                 />
               </div>
-              <div>
-                <Label htmlFor="type">유형</Label>
+
+              <div className="space-y-2">
+                <Label htmlFor="type" className="text-sm font-medium text-gray-700">유형</Label>
                 <Input
                   id="type"
                   value={newReservationInfo.type}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewReservationInfo(prev => ({ ...prev, type: e.target.value }))}
+                  onChange={(e) => setNewReservationInfo(prev => ({ ...prev, type: e.target.value }))}
+                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="예매 유형을 입력하세요"
                 />
               </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="reservationRemark">비고</Label>
-                <Input
-                  id="reservationRemark"
-                  value={newReservationInfo.remark}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewReservationInfo(prev => ({ ...prev, remark: e.target.value }))}
-                />
-              </div>
-            </div>
-            <Button type="button" onClick={handleAddReservationInfo}>예매정보 추가</Button>
 
-            <div className="mt-4 space-y-2">
-              {formData.reservationInfos.map((ri) => (
-                <div key={ri.reservationInfoId} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                  <span>
-                    {ri.type}: {ri.openDateTime} ~ {ri.closeDateTime}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleRemoveReservationInfo(ri.reservationInfoId)}
-                  >
-                    삭제
-                  </Button>
-                </div>
-              ))}
+              <div className="md:col-span-2 space-y-2">
+                <Label htmlFor="remark" className="text-sm font-medium text-gray-700">비고</Label>
+                <Input
+                  id="remark"
+                  value={newReservationInfo.remark}
+                  onChange={(e) => setNewReservationInfo(prev => ({ ...prev, remark: e.target.value }))}
+                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="추가 정보를 입력하세요"
+                />
+              </div>
             </div>
+
+            <div className="flex justify-end mb-4">
+              <Button
+                type="button"
+                onClick={handleAddReservationInfo}
+                className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg"
+              >
+                예매정보 추가
+              </Button>
+            </div>
+
+            {formData.reservationInfos.length > 0 && (
+              <div className="overflow-x-auto rounded-lg border border-gray-200">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">예매 시작</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">예매 종료</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">예매 URL</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">유형</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">비고</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">작업</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {formData.reservationInfos.map((ri) => (
+                      <tr key={ri.reservationInfoId} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-900">{format(new Date(ri.openDateTime), 'yyyy/MM/dd HH:mm')}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{format(new Date(ri.closeDateTime), 'yyyy/MM/dd HH:mm')}</td>
+                        <td className="px-6 py-4 text-sm text-blue-600 hover:text-blue-700">
+                          <a href={ri.ticketURL} target="_blank" rel="noopener noreferrer">
+                            {ri.ticketURL}
+                          </a>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{ri.type}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{ri.remark}</td>
+                        <td className="px-6 py-4 text-right">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveReservationInfo(ri.reservationInfoId)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            삭제
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
-          <div className="flex justify-end space-x-2 mt-6">
-            <Button type="button" variant="outline" onClick={onCancel}>
+          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              className="px-6 py-2 rounded-lg border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
               취소
             </Button>
-            <Button type="submit">
-              {initialData ? '수정' : '등록'}
+            <Button
+              type="submit"
+              className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 rounded-lg"
+            >
+              {initialData ? '수정하기' : '추가하기'}
             </Button>
           </div>
         </form>

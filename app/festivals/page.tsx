@@ -9,6 +9,8 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import TimeTable from './components/TimeTable';
+import React from 'react';
+import { FiPlus } from 'react-icons/fi';
 
 export default function FestivalsPage() {
   const [festivals, setFestivals] = useState<Festival[]>([]);
@@ -69,162 +71,160 @@ export default function FestivalsPage() {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-red-500 text-center">{error}</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Festivals</h1>
-        <button
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          onClick={() => setIsFormOpen(true)}
-        >
-          Add New Festival
-        </button>
-      </div>
-
-      <div className="overflow-x-auto">
-        <Table className="min-w-full bg-white border border-gray-200">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">포스터</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이름</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">장소명</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">주소</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">시작일</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">종료일</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">금지물품</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">교통정보</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">비고</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">작업</th>
-            </tr>
-          </thead>
-          <TableBody>
-            {festivals.map((festival) => (
-              <>
-                <TableRow key={festival.festivalId}>
-                  <TableCell className="w-16">
-                    <div style={{ position: 'relative', width: '48px', height: '48px' }} className="overflow-hidden rounded-md">
-                      <Image
-                        src={festival.posterUrl}
-                        alt={festival.name}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                        className="rounded-md"
-                        sizes="48px"
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{festival.name}</TableCell>
-                  <TableCell>{festival.placeName}</TableCell>
-                  <TableCell>{festival.placeAddress}</TableCell>
-                  <TableCell>{festival.startDate}</TableCell>
-                  <TableCell>{festival.endDate}</TableCell>
-                  <TableCell>{festival.banGoods}</TableCell>
-                  <TableCell>{festival.transportationInfo}</TableCell>
-                  <TableCell>{festival.remark}</TableCell>
-                  <TableCell className="text-right space-y-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(festival)}
-                    >
-                      수정
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700"
-                      onClick={() => {/* TODO: Implement delete */}}
-                    >
-                      삭제
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-1"
-                      onClick={() => {
-                        if (openTimeTable === festival.festivalId) {
-                          setOpenTimeTable(null);
-                        } else {
-                          setOpenTimeTable(festival.festivalId);
-                          setOpenReservation(null);
-                        }
-                      }}
-                    >
-                      타임테이블 보기
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-1"
-                      onClick={() => {
-                        if (openReservation === festival.festivalId) {
-                          setOpenReservation(null);
-                        } else {
-                          setOpenReservation(festival.festivalId);
-                          setOpenTimeTable(null);
-                        }
-                      }}
-                    >
-                      예매정보 보기
-                    </Button>
-                  </TableCell>
-                </TableRow>
-                {/* 타임테이블 펼침 */}
-                {openTimeTable === festival.festivalId && (
-                  <TableRow>
-                    <TableCell colSpan={10} className="bg-gray-50">
-                      <div className="p-4">
-                        <div className="font-semibold mb-4">타임테이블</div>
-                        <TimeTable timeTables={festival.timeTables} />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-                {/* 예매정보 펼침 */}
-                {openReservation === festival.festivalId && (
-                  <TableRow>
-                    <TableCell colSpan={10} className="bg-gray-50">
-                      <div>
-                        <div className="font-semibold mb-2">예매정보</div>
-                        <table className="w-full text-sm border">
-                          <thead>
-                            <tr className="bg-gray-100">
-                              <th>예매ID</th>
-                              <th>예매시작</th>
-                              <th>예매종료</th>
-                              <th>예매URL</th>
-                              <th>유형</th>
-                              <th>비고</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {festival.reservationInfos.map((ri, i) => (
-                              <tr key={i}>
-                                <td>{ri.reservationInfoId}</td>
-                                <td>{ri.openDateTime}</td>
-                                <td>{ri.closeDateTime}</td>
-                                <td>{ri.ticketURL}</td>
-                                <td>{ri.type}</td>
-                                <td>{ri.remark}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </>
-            ))}
-          </TableBody>
-        </Table>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-10">
+      <div className="max-w-6xl mx-auto px-4">
+        <h1 className="text-3xl font-bold mb-8 text-gray-900">페스티벌 관리</h1>
+        <div className="bg-white rounded-2xl shadow p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">페스티벌 목록</h2>
+            <Button
+              className="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold shadow hover:bg-blue-700"
+              onClick={() => {
+                if (isFormOpen && !editingFestival) {
+                  setIsFormOpen(false);
+                } else {
+                  setIsFormOpen(true);
+                  setEditingFestival(null);
+                }
+              }}
+            >
+              {isFormOpen && !editingFestival ? '추가 닫기' : '페스티벌 추가'}
+            </Button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full bg-white rounded-xl shadow overflow-hidden border border-gray-300 border-collapse">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 border border-gray-200">포스터</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 border border-gray-200">이름</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 border border-gray-200">장소명</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 border border-gray-200">주소</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 border border-gray-200">시작일</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 border border-gray-200">종료일</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 border border-gray-200">금지물품</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 border border-gray-200">교통정보</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 border border-gray-200">비고</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 border border-gray-200">작업</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {festivals.map(festival => (
+                  <React.Fragment key={festival.festivalId}>
+                    <tr className="border-b last:border-b-0 hover:bg-gray-50">
+                      <td className="px-6 py-4 border border-gray-200">
+                        <Image src={festival.posterUrl} alt={festival.name} width={48} height={48} className="rounded-lg" />
+                      </td>
+                      <td className="px-6 py-4 font-medium border border-gray-200">{festival.name}</td>
+                      <td className="px-6 py-4 border border-gray-200">{festival.placeName}</td>
+                      <td className="px-6 py-4 border border-gray-200">{festival.placeAddress}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500 border border-gray-200">{festival.startDate}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500 border border-gray-200">{festival.endDate}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500 border border-gray-200">{festival.banGoods}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500 border border-gray-200">{festival.transportationInfo}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500 border border-gray-200">{festival.remark}</td>
+                      <td className="px-6 py-4 text-right space-x-2 border border-gray-200">
+                        <Button size="sm" className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold" onClick={() => {
+                          if (openTimeTable === festival.festivalId) {
+                            setOpenTimeTable(null);
+                          } else {
+                            setOpenTimeTable(festival.festivalId);
+                            setOpenReservation(null);
+                          }
+                        }}>
+                          {openTimeTable === festival.festivalId ? '타임테이블 닫기' : '타임테이블'}
+                        </Button>
+                        <Button size="sm" className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold" onClick={() => {
+                          if (openReservation === festival.festivalId) {
+                            setOpenReservation(null);
+                          } else {
+                            setOpenReservation(festival.festivalId);
+                            setOpenTimeTable(null);
+                          }
+                        }}>
+                          {openReservation === festival.festivalId ? '예매정보 닫기' : '예매정보'}
+                        </Button>
+                        <Button size="sm" className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-semibold" onClick={() => {
+                          if (editingFestival && editingFestival.festivalId === festival.festivalId && isFormOpen) {
+                            setIsFormOpen(false);
+                            setEditingFestival(null);
+                          } else {
+                            setEditingFestival(festival);
+                            setIsFormOpen(true);
+                          }
+                        }}>
+                          {editingFestival && editingFestival.festivalId === festival.festivalId && isFormOpen ? '수정 닫기' : '수정'}
+                        </Button>
+                      </td>
+                    </tr>
+                    {/* 타임테이블 펼침 */}
+                    {openTimeTable === festival.festivalId && (
+                      <tr>
+                        <td colSpan={10} className="bg-blue-50">
+                          <div className="p-4">
+                            <div className="font-semibold mb-4">타임테이블</div>
+                            <TimeTable timeTables={festival.timeTables} />
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    {/* 예매정보 펼침 */}
+                    {openReservation === festival.festivalId && (
+                      <tr>
+                        <td colSpan={10} className="bg-green-50">
+                          <div className="p-4">
+                            <div className="font-semibold mb-2">예매정보</div>
+                            <table className="w-full text-sm border">
+                              <thead>
+                                <tr className="bg-gray-100">
+                                  <th>예매ID</th>
+                                  <th>예매시작</th>
+                                  <th>예매종료</th>
+                                  <th>예매URL</th>
+                                  <th>유형</th>
+                                  <th>비고</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {festival.reservationInfos.map((ri, i) => (
+                                  <tr key={i}>
+                                    <td>{ri.reservationInfoId}</td>
+                                    <td>{ri.openDateTime}</td>
+                                    <td>{ri.closeDateTime}</td>
+                                    <td>{ri.ticketURL}</td>
+                                    <td>{ri.type}</td>
+                                    <td>{ri.remark}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <FestivalForm
