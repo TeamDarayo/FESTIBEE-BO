@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from '@/components/ui/table';
 import TimeTable from './components/TimeTable';
+import ReservationInfo from './components/ReservationInfo';
 import React from 'react';
 import { FiPlus } from 'react-icons/fi';
 
@@ -163,7 +164,7 @@ export default function FestivalsPage() {
                     {openReservation === festival.id && (
                       <TableRow>
                         <TableCell colSpan={8} className="p-4 bg-muted">
-                          {/* Reservation Info Component Here */}
+                          <ReservationInfo reservationInfos={festival.reservationInfos} />
                         </TableCell>
                       </TableRow>
                     )}

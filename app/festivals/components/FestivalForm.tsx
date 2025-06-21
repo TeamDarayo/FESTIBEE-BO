@@ -418,15 +418,15 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
             </div>
           </div>
 
-          {/* 예약 정보 섹션 */}
+          {/* 예매 정보 섹션 */}
           <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold mb-4">예약 정보</h3>
+            <h3 className="text-lg font-semibold mb-4">예매 정보</h3>
             
-            {/* 기존 예약 정보 목록 */}
+            {/* 기존 예매 정보 목록 */}
             {formData.reservationInfos.map((reservationInfo) => (
               <div key={reservationInfo.id} className="border rounded-lg p-4 mb-4 bg-gray-50">
                 <div className="flex justify-between items-center mb-2">
-                  <h4 className="font-medium">예약 정보</h4>
+                  <h4 className="font-medium">예매 정보</h4>
                   <Button
                     type="button"
                     variant="ghost"
@@ -459,9 +459,9 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
               </div>
             ))}
 
-            {/* 새 예약 정보 추가 */}
+            {/* 새 예매 정보 추가 */}
             <div className="border rounded-lg p-4 bg-white">
-              <h4 className="font-medium mb-4">새 예약 정보 추가</h4>
+              <h4 className="font-medium mb-4">새 예매 정보 추가</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                 <div className="space-y-1">
                   <Label className="text-xs text-gray-600">오픈 날짜</Label>
@@ -497,7 +497,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
                     value={newReservationInfo.ticketUrl}
                     onChange={(e) => setNewReservationInfo(prev => ({ ...prev, ticketUrl: e.target.value }))}
                     className="text-sm"
-                    placeholder="티켓 예약 URL"
+                    placeholder="티켓 예매 URL"
                   />
                 </div>
                 <div className="space-y-1">
@@ -516,7 +516,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
                 onClick={handleAddReservationInfo}
                 className="w-full"
               >
-                예약 정보 추가
+                예매 정보 추가
               </Button>
             </div>
           </div>
