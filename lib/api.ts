@@ -1,10 +1,14 @@
 // 아티스트 관련 타입 정의
-export interface Artist {
-  artistId: string;
+export interface ArtistAlias {
+  id: number;
   name: string;
-  image: string;
-  createdAt: string;
-  updatedAt: string;
+}
+
+export interface Artist {
+  id: number;
+  name: string;
+  description: string;
+  aliases: ArtistAlias[];
 }
 
 // 공연(Festival) 관련 타입 정의
@@ -49,25 +53,30 @@ export interface Festival {
 // Mock 데이터 - 아티스트
 const mockArtists: Artist[] = [
   {
-    artistId: "a1",
+    id: 1,
     name: "IU",
-    image: "https://cdnticket.melon.co.kr/resource/image/upload/marketing/2025/05/20250529182542a5e38752-c31b-4810-a651-aacdfd973d8f.jpg",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    description: "이지은은 대한민국의 가수이자 배우이다. 2008년 9월 18일, 15세의 나이에 가수로 데뷔했다.",
+    aliases: [
+      { id: 1, name: "아이유" },
+      { id: 2, name: "이지은" }
+    ]
   },
   {
-    artistId: "a2",
+    id: 2,
     name: "BTS",
-    image: "https://cdnticket.melon.co.kr/resource/image/upload/marketing/2025/05/20250529182542a5e38752-c31b-4810-a651-aacdfd973d8f.jpg",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    description: "BTS는 대한민국의 7인조 보이 그룹이다. 2013년 6월 13일 데뷔했다.",
+    aliases: [
+      { id: 3, name: "방탄소년단" },
+      { id: 4, name: "Bangtan Boys" }
+    ]
   },
   {
-    artistId: "a3",
+    id: 3,
     name: "BLACKPINK",
-    image: "https://cdnticket.melon.co.kr/resource/image/upload/marketing/2025/05/20250529182542a5e38752-c31b-4810-a651-aacdfd973d8f.jpg",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    description: "BLACKPINK는 YG엔터테인먼트 소속의 4인조 걸 그룹이다. 2016년 8월 8일 데뷔했다.",
+    aliases: [
+      { id: 5, name: "블랙핑크" }
+    ]
   }
 ];
 
@@ -150,14 +159,14 @@ export const fetchArtists = async (): Promise<Artist[]> => {
   }
 };
 
-export const fetchArtistById = async (artistId: string): Promise<Artist> => {
+export const fetchArtistById = async (id: number): Promise<Artist> => {
   try {
-    return await apiCall<Artist>(`/api/artists/${artistId}`);
+    return await apiCall<Artist>(`/api/artists/${id}`);
   } catch (error) {
     console.warn('Using mock data for artist:', error);
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        const artist = artists.find(a => a.artistId === artistId);
+        const artist = artists.find(a => a.id === id);
         if (!artist) {
           reject(new Error('Artist not found'));
           return;
@@ -168,7 +177,7 @@ export const fetchArtistById = async (artistId: string): Promise<Artist> => {
   }
 };
 
-export const createArtist = async (artist: Omit<Artist, 'artistId' | 'createdAt' | 'updatedAt'>): Promise<Artist> => {
+export const createArtist = async (artist: Omit<Artist, 'id'>): Promise<Artist> => {
   try {
     return await apiCall<Artist>('/api/artists', {
       method: 'POST',
@@ -180,9 +189,7 @@ export const createArtist = async (artist: Omit<Artist, 'artistId' | 'createdAt'
       setTimeout(() => {
         const newArtist: Artist = {
           ...artist,
-          artistId: (artists.length + 1).toString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          id: artists.length + 1,
         };
         artists.push(newArtist);
         resolve(newArtist);
@@ -191,9 +198,9 @@ export const createArtist = async (artist: Omit<Artist, 'artistId' | 'createdAt'
   }
 };
 
-export const updateArtist = async (artistId: string, artistUpdate: Partial<Artist>): Promise<Artist> => {
+export const updateArtist = async (id: number, artistUpdate: Partial<Artist>): Promise<Artist> => {
   try {
-    return await apiCall<Artist>(`/api/artists/${artistId}`, {
+    return await apiCall<Artist>(`/api/artists/${id}`, {
       method: 'PUT',
       body: JSON.stringify(artistUpdate),
     });
@@ -201,7 +208,7 @@ export const updateArtist = async (artistId: string, artistUpdate: Partial<Artis
     console.warn('Using mock data for update artist:', error);
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        const index = artists.findIndex(a => a.artistId === artistId);
+        const index = artists.findIndex(a => a.id === id);
         if (index === -1) {
           reject(new Error('Artist not found'));
           return;
@@ -210,7 +217,6 @@ export const updateArtist = async (artistId: string, artistUpdate: Partial<Artis
         artists[index] = {
           ...artists[index],
           ...artistUpdate,
-          updatedAt: new Date().toISOString(),
         };
         
         resolve(artists[index]);
@@ -219,22 +225,22 @@ export const updateArtist = async (artistId: string, artistUpdate: Partial<Artis
   }
 };
 
-export const deleteArtist = async (artistId: string): Promise<void> => {
+export const deleteArtist = async (id: number): Promise<void> => {
   try {
-    await apiCall(`/api/artists/${artistId}`, {
+    await apiCall(`/api/artists/${id}`, {
       method: 'DELETE',
     });
   } catch (error) {
     console.warn('Using mock data for delete artist:', error);
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        const index = artists.findIndex(a => a.artistId === artistId);
+        const index = artists.findIndex(a => a.id === id);
         if (index === -1) {
           reject(new Error('Artist not found'));
           return;
         }
         
-        artists = artists.filter(a => a.artistId !== artistId);
+        artists = artists.filter(a => a.id !== id);
         resolve();
       }, 500);
     });

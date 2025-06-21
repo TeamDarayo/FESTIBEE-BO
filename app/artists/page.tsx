@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { Artist, fetchArtists, deleteArtist, createArtist, updateArtist } from '@/lib/api';
 import ArtistForm from './components/ArtistForm';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from '@/components/ui/table';
 import React from 'react';
@@ -34,10 +33,10 @@ export default function ArtistsPage() {
     }
   };
 
-  const handleDelete = async (artistId: string) => {
+  const handleDelete = async (id: number) => {
     if (window.confirm('정말로 이 아티스트를 삭제하시겠습니까?')) {
       try {
-        await deleteArtist(artistId);
+        await deleteArtist(id);
         await loadArtists();
       } catch (error) {
         console.error('Error deleting artist:', error);
@@ -63,10 +62,10 @@ export default function ArtistsPage() {
     setSelectedArtist(null);
   };
 
-  const handleSubmit = async (data: Omit<Artist, 'artistId' | 'createdAt' | 'updatedAt'>) => {
+  const handleSubmit = async (data: Omit<Artist, 'id'>) => {
     try {
       if (editingArtist) {
-        await updateArtist(editingArtist.artistId, data);
+        await updateArtist(editingArtist.id, data);
       } else {
         await createArtist(data);
       }
@@ -111,36 +110,34 @@ export default function ArtistsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>포스터</TableHead>
+                  <TableHead>ID</TableHead>
                   <TableHead>이름</TableHead>
-                  <TableHead>생성일</TableHead>
-                  <TableHead>수정일</TableHead>
+                  <TableHead>설명</TableHead>
+                  <TableHead>별칭</TableHead>
                   <TableHead className="text-right">작업</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {artists.map(artist => (
-                  <TableRow key={artist.artistId} className="hover:bg-gray-50">
-                    <TableCell>
-                      <div className="relative w-16 h-16">
-                        <Image 
-                          src={artist.image} 
-                          alt={artist.name} 
-                          fill
-                          className="rounded-md object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = 'https://via.placeholder.com/64x64?text=No+Image';
-                          }}
-                        />
-                      </div>
+                  <TableRow key={artist.id} className="hover:bg-gray-50">
+                    <TableCell className="font-medium text-gray-600">
+                      {artist.id}
                     </TableCell>
                     <TableCell className="font-medium text-lg">{artist.name}</TableCell>
-                    <TableCell className="text-gray-600">
-                      {new Date(artist.createdAt).toLocaleDateString('ko-KR')}
+                    <TableCell className="text-gray-600 max-w-xs truncate">
+                      {artist.description}
                     </TableCell>
-                    <TableCell className="text-gray-600">
-                      {new Date(artist.updatedAt).toLocaleDateString('ko-KR')}
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {artist.aliases.map(alias => (
+                          <span 
+                            key={alias.id} 
+                            className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs"
+                          >
+                            {alias.name}
+                          </span>
+                        ))}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button 
@@ -164,7 +161,7 @@ export default function ArtistsPage() {
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        onClick={() => handleDelete(artist.artistId)}
+                        onClick={() => handleDelete(artist.id)}
                         className="text-red-600 hover:text-red-700"
                       >
                         <FiTrash2 className="mr-1" />
@@ -195,48 +192,31 @@ export default function ArtistsPage() {
               </Button>
             </div>
             <div className="p-6">
-              <div className="flex items-start space-x-6">
-                <div className="relative w-32 h-32 flex-shrink-0">
-                  <Image 
-                    src={selectedArtist.image} 
-                    alt={selectedArtist.name} 
-                    fill
-                    className="rounded-lg object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = 'https://via.placeholder.com/128x128?text=No+Image';
-                    }}
-                  />
-                </div>
-                <div className="flex-1 space-y-4">
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedArtist.name}</h3>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-700">아티스트 ID:</span>
-                        <p className="text-gray-900">{selectedArtist.artistId}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">생성일:</span>
-                        <p className="text-gray-900">
-                          {new Date(selectedArtist.createdAt).toLocaleString('ko-KR')}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">수정일:</span>
-                        <p className="text-gray-900">
-                          {new Date(selectedArtist.updatedAt).toLocaleString('ko-KR')}
-                        </p>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4">{selectedArtist.name}</h3>
+                  <div className="grid grid-cols-1 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-700">아티스트 ID:</span>
+                      <p className="text-gray-900">{selectedArtist.id}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">설명:</span>
+                      <p className="text-gray-900">{selectedArtist.description}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">별칭:</span>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {selectedArtist.aliases.map(alias => (
+                          <span 
+                            key={alias.id} 
+                            className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                          >
+                            {alias.name}
+                          </span>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">이미지 URL:</span>
-                    <p className="text-blue-600 hover:text-blue-700 break-all">
-                      <a href={selectedArtist.image} target="_blank" rel="noopener noreferrer">
-                        {selectedArtist.image}
-                      </a>
-                    </p>
                   </div>
                 </div>
               </div>
