@@ -5,13 +5,16 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'cdnticket.melon.co.kr',
       },
-    ],
-    domains: [
-      'cdnticket.melon.co.kr',
-      'ticketimage.interpark.com',
-      'tkfile.yes24.com',
+      {
+        protocol: 'https',
+        hostname: 'ticketimage.interpark.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'tkfile.yes24.com',
+      },
     ],
   },
 }

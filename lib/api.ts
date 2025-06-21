@@ -1,5 +1,3 @@
-import axios from 'axios';
-
 // 아티스트 관련 타입 정의
 export interface Artist {
   id: number;
