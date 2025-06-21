@@ -38,7 +38,7 @@ export default function FestivalsPage() {
     }
   };
 
-  const handleCreateFestival = async (festivalData: Omit<Festival, 'festivalId'>) => {
+  const handleCreateFestival = async (festivalData: Omit<Festival, 'id'>) => {
     try {
       await createFestival(festivalData);
       await loadFestivals();
@@ -48,10 +48,10 @@ export default function FestivalsPage() {
     }
   };
 
-  const handleUpdateFestival = async (festivalData: Omit<Festival, 'festivalId'>) => {
+  const handleUpdateFestival = async (festivalData: Omit<Festival, 'id'>) => {
     if (!editingFestival) return;
     try {
-      await updateFestival(editingFestival.festivalId, festivalData);
+      await updateFestival(editingFestival.id, festivalData);
       await loadFestivals();
       setEditingFestival(null);
     } catch (error) {
@@ -116,51 +116,51 @@ export default function FestivalsPage() {
               </TableHeader>
               <TableBody>
                 {festivals.map(festival => (
-                  <React.Fragment key={festival.festivalId}>
+                  <React.Fragment key={festival.id}>
                     <TableRow>
                       <TableCell>
-                        <Image src={festival.posterUrl} alt={festival.name} width={48} height={48} className="rounded-md" />
+                        <Image src={festival.poster} alt={festival.name} width={48} height={48} className="rounded-md" />
                       </TableCell>
                       <TableCell className="font-medium">{festival.name}</TableCell>
                       <TableCell>{festival.placeName}<br/><span className="text-xs text-gray-500">{festival.placeAddress}</span></TableCell>
                       <TableCell>{`${festival.startDate} ~ ${festival.endDate}`}</TableCell>
-                      <TableCell>{festival.banGoods}</TableCell>
-                      <TableCell>{festival.transportationInfo}</TableCell>
+                      <TableCell>{festival.bannedItems}</TableCell>
+                      <TableCell>{festival.transportation}</TableCell>
                       <TableCell>{festival.remark}</TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button size="sm" variant="outline" onClick={() => {
-                          if (openTimeTable === festival.festivalId) {
+                          if (openTimeTable === festival.id) {
                             setOpenTimeTable(null);
                           } else {
-                            setOpenTimeTable(festival.festivalId);
+                            setOpenTimeTable(festival.id);
                             setOpenReservation(null);
                           }
                         }}>
-                          {openTimeTable === festival.festivalId ? '닫기' : '타임테이블'}
+                          {openTimeTable === festival.id ? '닫기' : '타임테이블'}
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => {
-                          if (openReservation === festival.festivalId) {
+                          if (openReservation === festival.id) {
                             setOpenReservation(null);
                           } else {
-                            setOpenReservation(festival.festivalId);
+                            setOpenReservation(festival.id);
                             setOpenTimeTable(null);
                           }
                         }}>
-                          {openReservation === festival.festivalId ? '닫기' : '예매정보'}
+                          {openReservation === festival.id ? '닫기' : '예매정보'}
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => handleEdit(festival)}>
                           수정
                         </Button>
                       </TableCell>
                     </TableRow>
-                    {openTimeTable === festival.festivalId && (
+                    {openTimeTable === festival.id && (
                       <TableRow>
                         <TableCell colSpan={8} className="p-4 bg-muted">
                           <TimeTable timeTables={festival.timeTables} />
                         </TableCell>
                       </TableRow>
                     )}
-                    {openReservation === festival.festivalId && (
+                    {openReservation === festival.id && (
                       <TableRow>
                         <TableCell colSpan={8} className="p-4 bg-muted">
                           {/* Reservation Info Component Here */}

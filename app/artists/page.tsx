@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Artist, fetchArtists, deleteArtist } from '@/lib/api';
+import { Artist, fetchArtists, deleteArtist, createArtist, updateArtist } from '@/lib/api';
 import ArtistForm from './components/ArtistForm';
 import Image from 'next/image';
 import { TableBody, TableCell, TableRow } from '@/components/ui/table';
@@ -31,10 +31,10 @@ export default function ArtistsPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (artistId: string) => {
     if (window.confirm('Are you sure you want to delete this artist?')) {
       try {
-        await deleteArtist(id);
+        await deleteArtist(artistId);
         await loadArtists();
       } catch (error) {
         console.error('Error deleting artist:', error);
@@ -50,6 +50,20 @@ export default function ArtistsPage() {
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setEditingArtist(null);
+  };
+
+  const handleSubmit = async (data: Omit<Artist, 'artistId' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      if (editingArtist) {
+        await updateArtist(editingArtist.artistId, data);
+      } else {
+        await createArtist(data);
+      }
+      await loadArtists();
+      handleCloseForm();
+    } catch (error) {
+      console.error('Error saving artist:', error);
+    }
   };
 
   if (isLoading) {
@@ -77,15 +91,21 @@ export default function ArtistsPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이름</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">설명</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이미지</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">작업</th>
             </tr>
           </thead>
           <TableBody>
             {artists.map((artist) => (
-              <TableRow key={artist.id}>
+              <TableRow key={artist.artistId}>
                 <TableCell className="font-medium">{artist.name}</TableCell>
-                <TableCell className="max-w-md truncate">{artist.description}</TableCell>
+                <TableCell className="max-w-md truncate">
+                  <img 
+                    src={artist.image} 
+                    alt={artist.name}
+                    className="w-16 h-16 object-cover rounded"
+                  />
+                </TableCell>
                 <TableCell className="text-right">
                   <Button
                     variant="ghost"
@@ -98,7 +118,7 @@ export default function ArtistsPage() {
                     variant="ghost"
                     size="sm"
                     className="text-red-600 hover:text-red-700"
-                    onClick={() => handleDelete(artist.id)}
+                    onClick={() => handleDelete(artist.artistId)}
                   >
                     삭제
                   </Button>
@@ -111,11 +131,7 @@ export default function ArtistsPage() {
 
       <ArtistForm
         isOpen={isFormOpen}
-        onSubmit={async (data) => {
-          // TODO: Implement create/update logic
-          await loadArtists();
-          handleCloseForm();
-        }}
+        onSubmit={handleSubmit}
         onCancel={handleCloseForm}
         initialData={editingArtist || undefined}
       />

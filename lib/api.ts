@@ -1,9 +1,8 @@
 // 아티스트 관련 타입 정의
 export interface Artist {
-  id: number;
+  artistId: string;
   name: string;
-  description: string;
-  imageUrl: string;
+  image: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -15,33 +14,33 @@ export interface ArtistInTimeTable {
 }
 
 export interface TimeTable {
-  timeTableId: string;
-  performanceDate: string; // Date
-  startTime: string;
-  endTime: string;
-  performanceHall: string;
+  id: string;
+  date: string; // Date
+  start: string;
+  end: string;
+  hall: string;
   artists: ArtistInTimeTable[];
 }
 
 export interface ReservationInfo {
-  reservationInfoId: string;
-  openDateTime: string;
-  closeDateTime: string;
-  ticketURL: string;
+  id: string;
+  openDate: string;
+  closeDate: string;
+  ticketUrl: string;
   type: string;
   remark: string;
 }
 
 export interface Festival {
-  festivalId: string;
+  id: string;
   name: string;
   placeName: string;
   placeAddress: string;
   startDate: string;
   endDate: string;
-  posterUrl: string;
-  banGoods: string;
-  transportationInfo: string;
+  poster: string;
+  bannedItems: string;
+  transportation: string;
   remark: string;
   timeTables: TimeTable[];
   reservationInfos: ReservationInfo[];
@@ -50,26 +49,23 @@ export interface Festival {
 // Mock 데이터 - 아티스트
 const mockArtists: Artist[] = [
   {
-    id: 1,
+    artistId: "a1",
     name: "IU",
-    description: "이지은은 대한민국의 가수이자 배우이다. 2008년 9월 18일, 15세의 나이에 가수로 데뷔했다.",
-    imageUrl: "https://cdnticket.melon.co.kr/resource/image/upload/marketing/2025/05/20250529182542a5e38752-c31b-4810-a651-aacdfd973d8f.jpg",
+    image: "https://cdnticket.melon.co.kr/resource/image/upload/marketing/2025/05/20250529182542a5e38752-c31b-4810-a651-aacdfd973d8f.jpg",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 2,
+    artistId: "a2",
     name: "BTS",
-    description: "BTS는 대한민국의 7인조 보이 그룹이다. 2013년 6월 13일 데뷔했다.",
-    imageUrl: "https://cdnticket.melon.co.kr/resource/image/upload/marketing/2025/05/20250529182542a5e38752-c31b-4810-a651-aacdfd973d8f.jpg",
+    image: "https://cdnticket.melon.co.kr/resource/image/upload/marketing/2025/05/20250529182542a5e38752-c31b-4810-a651-aacdfd973d8f.jpg",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 3,
+    artistId: "a3",
     name: "BLACKPINK",
-    description: "BLACKPINK는 YG엔터테인먼트 소속의 4인조 걸 그룹이다. 2016년 8월 8일 데뷔했다.",
-    imageUrl: "https://cdnticket.melon.co.kr/resource/image/upload/marketing/2025/05/20250529182542a5e38752-c31b-4810-a651-aacdfd973d8f.jpg",
+    image: "https://cdnticket.melon.co.kr/resource/image/upload/marketing/2025/05/20250529182542a5e38752-c31b-4810-a651-aacdfd973d8f.jpg",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -78,23 +74,23 @@ const mockArtists: Artist[] = [
 // Mock 데이터 - 공연
 const mockFestivals: Festival[] = [
   {
-    festivalId: "1",
+    id: "1",
     name: "서울 재즈 페스티벌",
     placeName: "올림픽공원",
     placeAddress: "서울 송파구 올림픽로 424",
     startDate: "2024-07-15",
     endDate: "2024-07-17",
-    posterUrl: "https://cdnticket.melon.co.kr/resource/image/upload/marketing/2025/05/20250529182542a5e38752-c31b-4810-a651-aacdfd973d8f.jpg",
-    banGoods: "음식물, 유리병",
-    transportationInfo: "지하철 5호선 올림픽공원역 3번 출구",
+    poster: "https://cdnticket.melon.co.kr/resource/image/upload/marketing/2025/05/20250529182542a5e38752-c31b-4810-a651-aacdfd973d8f.jpg",
+    bannedItems: "음식물, 유리병",
+    transportation: "지하철 5호선 올림픽공원역 3번 출구",
     remark: "야외 행사, 우천시 우비 지참",
     timeTables: [
       {
-        timeTableId: "tt1",
-        performanceDate: "2024-07-15",
-        startTime: "18:00",
-        endTime: "20:00",
-        performanceHall: "88잔디마당",
+        id: "tt1",
+        date: "2024-07-15",
+        start: "18:00",
+        end: "20:00",
+        hall: "88잔디마당",
         artists: [
           { artistId: "a1", type: "MAIN" },
           { artistId: "a2", type: "SUB" }
@@ -103,10 +99,10 @@ const mockFestivals: Festival[] = [
     ],
     reservationInfos: [
       {
-        reservationInfoId: "r1",
-        openDateTime: "2024-06-01T10:00:00",
-        closeDateTime: "2024-07-14T23:59:59",
-        ticketURL: "https://ticket.example.com/1",
+        id: "r1",
+        openDate: "2024-06-01T10:00:00",
+        closeDate: "2024-07-14T23:59:59",
+        ticketUrl: "https://ticket.example.com/1",
         type: "얼리버드",
         remark: "선착순"
       }
@@ -117,140 +113,231 @@ const mockFestivals: Festival[] = [
 let artists = [...mockArtists];
 let festivals = [...mockFestivals];
 
-// Mock API 구현 - 아티스트
+// API Base URL
+const API_BASE_URL = 'https://festival-app-358499057731.asia-northeast3.run.app';
+
+// Helper function for API calls
+async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// Mock API 구현 - 아티스트 (개발용)
 export const fetchArtists = async (): Promise<Artist[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(artists);
-    }, 500);
-  });
+  // 실제 API 호출 시도
+  try {
+    return await apiCall<Artist[]>('/api/artists');
+  } catch (error) {
+    console.warn('Using mock data for artists:', error);
+    // API 호출 실패 시 mock 데이터 반환
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(artists);
+      }, 500);
+    });
+  }
 };
 
-export const fetchArtistById = async (id: number): Promise<Artist> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const artist = artists.find(a => a.id === id);
-      if (!artist) {
-        reject(new Error('Artist not found'));
-        return;
-      }
-      resolve(artist);
-    }, 500);
-  });
+export const fetchArtistById = async (artistId: string): Promise<Artist> => {
+  try {
+    return await apiCall<Artist>(`/api/artists/${artistId}`);
+  } catch (error) {
+    console.warn('Using mock data for artist:', error);
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const artist = artists.find(a => a.artistId === artistId);
+        if (!artist) {
+          reject(new Error('Artist not found'));
+          return;
+        }
+        resolve(artist);
+      }, 500);
+    });
+  }
 };
 
-export const createArtist = async (artist: Omit<Artist, 'id' | 'createdAt' | 'updatedAt'>): Promise<Artist> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const newArtist: Artist = {
-        ...artist,
-        id: artists.length + 1,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      artists.push(newArtist);
-      resolve(newArtist);
-    }, 500);
-  });
+export const createArtist = async (artist: Omit<Artist, 'artistId' | 'createdAt' | 'updatedAt'>): Promise<Artist> => {
+  try {
+    return await apiCall<Artist>('/api/artists', {
+      method: 'POST',
+      body: JSON.stringify(artist),
+    });
+  } catch (error) {
+    console.warn('Using mock data for create artist:', error);
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const newArtist: Artist = {
+          ...artist,
+          artistId: (artists.length + 1).toString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        artists.push(newArtist);
+        resolve(newArtist);
+      }, 500);
+    });
+  }
 };
 
-export const updateArtist = async (id: number, artistUpdate: Partial<Artist>): Promise<Artist> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const index = artists.findIndex(a => a.id === id);
-      if (index === -1) {
-        reject(new Error('Artist not found'));
-        return;
-      }
-      
-      artists[index] = {
-        ...artists[index],
-        ...artistUpdate,
-        updatedAt: new Date().toISOString(),
-      };
-      
-      resolve(artists[index]);
-    }, 500);
-  });
+export const updateArtist = async (artistId: string, artistUpdate: Partial<Artist>): Promise<Artist> => {
+  try {
+    return await apiCall<Artist>(`/api/artists/${artistId}`, {
+      method: 'PUT',
+      body: JSON.stringify(artistUpdate),
+    });
+  } catch (error) {
+    console.warn('Using mock data for update artist:', error);
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const index = artists.findIndex(a => a.artistId === artistId);
+        if (index === -1) {
+          reject(new Error('Artist not found'));
+          return;
+        }
+        
+        artists[index] = {
+          ...artists[index],
+          ...artistUpdate,
+          updatedAt: new Date().toISOString(),
+        };
+        
+        resolve(artists[index]);
+      }, 500);
+    });
+  }
 };
 
-export const deleteArtist = async (id: number): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const index = artists.findIndex(a => a.id === id);
-      if (index === -1) {
-        reject(new Error('Artist not found'));
-        return;
-      }
-      
-      artists = artists.filter(a => a.id !== id);
-      resolve();
-    }, 500);
-  });
+export const deleteArtist = async (artistId: string): Promise<void> => {
+  try {
+    await apiCall(`/api/artists/${artistId}`, {
+      method: 'DELETE',
+    });
+  } catch (error) {
+    console.warn('Using mock data for delete artist:', error);
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const index = artists.findIndex(a => a.artistId === artistId);
+        if (index === -1) {
+          reject(new Error('Artist not found'));
+          return;
+        }
+        
+        artists = artists.filter(a => a.artistId !== artistId);
+        resolve();
+      }, 500);
+    });
+  }
 };
 
 // Mock API 구현 - 공연
 export const fetchFestivals = async (): Promise<Festival[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(festivals);
-    }, 500);
-  });
+  try {
+    return await apiCall<Festival[]>('/api/festivals');
+  } catch (error) {
+    console.warn('Using mock data for festivals:', error);
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(festivals);
+      }, 500);
+    });
+  }
 };
 
 export const fetchFestivalById = async (id: string): Promise<Festival> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const festival = festivals.find(f => f.festivalId === id);
-      if (!festival) {
-        reject(new Error('Festival not found'));
-        return;
-      }
-      resolve(festival);
-    }, 500);
-  });
+  try {
+    return await apiCall<Festival>(`/api/festivals/${id}`);
+  } catch (error) {
+    console.warn('Using mock data for festival:', error);
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const festival = festivals.find(f => f.id === id);
+        if (!festival) {
+          reject(new Error('Festival not found'));
+          return;
+        }
+        resolve(festival);
+      }, 500);
+    });
+  }
 };
 
-export const createFestival = async (festival: Omit<Festival, 'festivalId'>): Promise<Festival> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const newFestival: Festival = {
-        ...festival,
-        festivalId: (festivals.length + 1).toString(),
-      };
-      festivals.push(newFestival);
-      resolve(newFestival);
-    }, 500);
-  });
+export const createFestival = async (festival: Omit<Festival, 'id'>): Promise<Festival> => {
+  try {
+    return await apiCall<Festival>('/api/festivals', {
+      method: 'POST',
+      body: JSON.stringify(festival),
+    });
+  } catch (error) {
+    console.warn('Using mock data for create festival:', error);
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const newFestival: Festival = {
+          ...festival,
+          id: (festivals.length + 1).toString(),
+        };
+        festivals.push(newFestival);
+        resolve(newFestival);
+      }, 500);
+    });
+  }
 };
 
 export const updateFestival = async (id: string, festivalUpdate: Partial<Festival>): Promise<Festival> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const index = festivals.findIndex(f => f.festivalId === id);
-      if (index === -1) {
-        reject(new Error('Festival not found'));
-        return;
-      }
-      festivals[index] = {
-        ...festivals[index],
-        ...festivalUpdate,
-      };
-      resolve(festivals[index]);
-    }, 500);
-  });
+  try {
+    return await apiCall<Festival>(`/api/festivals/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(festivalUpdate),
+    });
+  } catch (error) {
+    console.warn('Using mock data for update festival:', error);
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const index = festivals.findIndex(f => f.id === id);
+        if (index === -1) {
+          reject(new Error('Festival not found'));
+          return;
+        }
+        
+        festivals[index] = {
+          ...festivals[index],
+          ...festivalUpdate,
+        };
+        
+        resolve(festivals[index]);
+      }, 500);
+    });
+  }
 };
 
 export const deleteFestival = async (id: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const index = festivals.findIndex(f => f.festivalId === id);
-      if (index === -1) {
-        reject(new Error('Festival not found'));
-        return;
-      }
-      festivals = festivals.filter(f => f.festivalId !== id);
-      resolve();
-    }, 500);
-  });
+  try {
+    await apiCall(`/api/festivals/${id}`, {
+      method: 'DELETE',
+    });
+  } catch (error) {
+    console.warn('Using mock data for delete festival:', error);
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const index = festivals.findIndex(f => f.id === id);
+        if (index === -1) {
+          reject(new Error('Festival not found'));
+          return;
+        }
+        festivals = festivals.filter(f => f.id !== id);
+        resolve();
+      }, 500);
+    });
+  }
 }; 

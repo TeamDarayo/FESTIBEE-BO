@@ -4,33 +4,33 @@ export interface ArtistInTimeTable {
 }
 
 export interface TimeTable {
-  timeTableId: string;
-  performanceDate: string; // Date
-  startTime: string;
-  endTime: string;
-  performanceHall: string;
+  id: string;
+  date: string; // Date
+  start: string;
+  end: string;
+  hall: string;
   artists: ArtistInTimeTable[];
 }
 
 export interface ReservationInfo {
-  reservationInfoId: string;
-  openDateTime: string;
-  closeDateTime: string;
-  ticketURL: string;
+  id: string;
+  openDate: string;
+  closeDate: string;
+  ticketUrl: string;
   type: string;
   remark: string;
 }
 
 export interface Festival {
-  festivalId: string;
+  id: string;
   name: string;
   placeName: string;
   placeAddress: string;
   startDate: string;
   endDate: string;
-  posterUrl: string;
-  banGoods: string;
-  transportationInfo: string;
+  poster: string;
+  bannedItems: string;
+  transportation: string;
   remark: string;
   timeTables: TimeTable[];
   reservationInfos: ReservationInfo[];

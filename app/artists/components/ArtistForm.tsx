@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Artist } from '@/lib/api';
 
 interface ArtistFormProps {
-  onSubmit: (data: Omit<Artist, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  onSubmit: (data: Omit<Artist, 'artistId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   onCancel: () => void;
   initialData?: Artist;
   isOpen: boolean;
@@ -11,8 +11,7 @@ interface ArtistFormProps {
 export default function ArtistForm({ onSubmit, onCancel, initialData, isOpen }: ArtistFormProps) {
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
-    description: initialData?.description || '',
-    imageUrl: initialData?.imageUrl || '',
+    image: initialData?.image || '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,24 +49,13 @@ export default function ArtistForm({ onSubmit, onCancel, initialData, isOpen }: 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
-              required
-              rows={4}
-              className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-            />
-          </div>
-
-          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
             <input
               type="url"
               required
               className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
-              value={formData.imageUrl}
-              onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
+              value={formData.image}
+              onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
             />
           </div>
 

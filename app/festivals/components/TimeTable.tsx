@@ -12,7 +12,7 @@ export default function TimeTable({ timeTables }: TimeTableProps) {
   // 날짜별로 타임테이블 그룹화
   const timeTablesByDate = useMemo(() => {
     const grouped = timeTables.reduce((acc, tt) => {
-      const date = tt.performanceDate;
+      const date = tt.date;
       if (!acc[date]) {
         acc[date] = [];
       }
@@ -25,7 +25,7 @@ export default function TimeTable({ timeTables }: TimeTableProps) {
 
   // 모든 공연장 목록 추출
   const halls = useMemo(() => {
-    const uniqueHalls = new Set(timeTables.map(tt => tt.performanceHall));
+    const uniqueHalls = new Set(timeTables.map(tt => tt.hall));
     return Array.from(uniqueHalls).sort();
   }, [timeTables]);
 
@@ -33,8 +33,8 @@ export default function TimeTable({ timeTables }: TimeTableProps) {
   const timeSlots = useMemo(() => {
     const times = new Set<string>();
     timeTables.forEach(tt => {
-      times.add(tt.startTime);
-      times.add(tt.endTime);
+      times.add(tt.start);
+      times.add(tt.end);
     });
     return Array.from(times).sort();
   }, [timeTables]);
@@ -81,17 +81,17 @@ export default function TimeTable({ timeTables }: TimeTableProps) {
                       <TableCell className="font-medium text-gray-600">{time}</TableCell>
                       {halls.map(hall => {
                         const performance = tables.find(
-                          tt => tt.performanceHall === hall && 
-                          (tt.startTime === time || tt.endTime === time)
+                          tt => tt.hall === hall && 
+                          (tt.start === time || tt.end === time)
                         );
                         
                         if (!performance) {
                           return <TableCell key={hall} />;
                         }
 
-                        const isStart = performance.startTime === time;
-                        const rowSpan = timeSlots.indexOf(performance.endTime) - 
-                                      timeSlots.indexOf(performance.startTime) + 1;
+                        const isStart = performance.start === time;
+                        const rowSpan = timeSlots.indexOf(performance.end) - 
+                                      timeSlots.indexOf(performance.start) + 1;
 
                         if (!isStart) return null;
 
@@ -105,7 +105,7 @@ export default function TimeTable({ timeTables }: TimeTableProps) {
                               {performance.artists.map(artist => artist.artistId).join(', ')}
                             </div>
                             <div className="text-sm text-blue-600 mt-1">
-                              {performance.startTime} - {performance.endTime}
+                              {performance.start} - {performance.end}
                             </div>
                           </TableCell>
                         );
