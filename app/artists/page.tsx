@@ -86,7 +86,10 @@ export default function ArtistsPage() {
       setIsFormOpen(false);
     } catch (error: any) {
       // 서버 에러 응답을 alert로 표시
-      const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+      let errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+      if (error.message && error.message.includes('401')) {
+        errorMessage = '비밀번호를 확인해주세요.';
+      }
       alert(`오류: ${errorMessage}`);
       console.error('API Error:', error);
     } finally {

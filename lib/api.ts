@@ -120,7 +120,7 @@ const mockFestivals: Festival[] = [
 ];
 
 let artists = [...mockArtists];
-let festivals = [...mockFestivals];
+let festivals: any[] = [...mockFestivals];
 
 // API Base URL - 환경에 따라 동적으로 설정
 const getApiBaseUrl = () => {
@@ -296,18 +296,32 @@ export const deleteArtist = async (id: number, password: string): Promise<void> 
   }
 };
 
-// Mock API 구현 - 공연
+// Helper to transform the nested API response to our flat frontend Festival type
+const transformFestivalResponse = (res: FestivalResponse): Festival => {
+  const { performance, timeTables, reservationInfos, artists } = res;
+  return {
+    ...performance,
+    timeTables: timeTables.map(tt => ({
+      ...tt,
+      id: tt.id,
+      hallName: tt.performanceHall,
+      artists: tt.artists.map(artist => ({
+        ...artist
+      })),
+    })),
+    reservationInfos: reservationInfos.map(ri => ({
+      ...ri,
+      id: ri.id,
+    })),
+    artists: artists.map(artist => ({
+      ...artist
+    })),
+  };
+};
+
 export const fetchFestivals = async (): Promise<Festival[]> => {
-  try {
-    return await apiCall<Festival[]>('/api/admin/performance');
-  } catch (error) {
-    console.warn('Using mock data for festivals:', error);
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(festivals);
-      }, 500);
-    });
-  }
+  const responseData = await apiCall<FestivalResponse[]>('/api/admin/performance');
+  return responseData.map(transformFestivalResponse);
 };
 
 export const fetchFestivalById = async (id: string): Promise<Festival> => {
@@ -347,166 +361,51 @@ function convertToRequestFormat(festivalData: any, password: string) {
       placeId: DUMMY_PLACE_ID, // TODO: Replace with real place ID from form
       startDate: performanceInfo.startDate,
       endDate: performanceInfo.endDate,
-      posterUrl: performanceInfo.poster, // Assumes form still uses 'poster'
-      banGoods: performanceInfo.bannedItems, // Assumes form still uses 'bannedItems'
-      transportationInfo: performanceInfo.transportation, // Assumes form still uses 'transportation'
+      posterUrl: performanceInfo.posterUrl, // Corrected from poster
+      banGoods: performanceInfo.banGoods, // Corrected from bannedItems
+      transportationInfo: performanceInfo.transportationInfo, // Corrected from transportation
       remark: performanceInfo.remark,
     },
     timeTables: timeTables.map((tt: any) => ({
-      performanceDate: tt.date, // Assumes form uses 'date'
+      performanceDate: tt.performanceDate, // Assumes form uses 'performanceDate'
       startTime: tt.startTime,
       endTime: tt.endTime,
       hallId: DUMMY_HALL_ID, // TODO: Replace with real hall ID from form
-      artists: (tt.artists as string[]).map(artistName => ({ // Assumes form provides artist names as string array
-        artistId: DUMMY_ARTIST_ID, // TODO: Map artist name to ID
-        type: "MAIN"
+      artists: (tt.artists as TimeTableArtist[]).map(artist => ({ // Assumes form provides artist objects
+        artistId: artist.artistId, // TODO: Map artist name to ID
+        type: artist.type,
       }))
     })),
     reservationInfos: reservationInfos.map((ri: any) => ({
-      openDateTime: ri.openTime, // Assumes form uses 'openTime'
-      closeDateTime: ri.closeTime, // Assumes form uses 'closeTime'
+      openDateTime: ri.openDateTime, // Assumes form uses 'openDateTime'
+      closeDateTime: ri.closeDateTime, // Assumes form uses 'closeDateTime'
       type: ri.type,
-      ticketURL: ri.saleSite, // Assumes form uses 'saleSite'
+      ticketURL: ri.ticketURL, // Assumes form uses 'ticketURL'
       remark: ri.remark,
     })),
   };
 }
 
 export const createFestival = async (festival: Omit<Festival, 'id'>, password: string): Promise<Festival> => {
-  try {
-    const requestBody = convertToRequestFormat(festival, password);
-    // The response type might differ from the request type. Casting for now.
-    return await apiCall<Festival>('/api/admin/performance', {
-      method: 'POST',
-      body: JSON.stringify(requestBody),
-    });
-    const { timeTables, reservationInfos, ...performanceData } = festival;
-
-    const requestBody = {
-      password,
-      performance: {
-        name: performanceData.name,
-        placeId: 0, // TODO: 실제 장소 ID를 사용하도록 수정 필요
-        startDate: performanceData.startDate,
-        endDate: performanceData.endDate,
-        posterUrl: performanceData.poster,
-        banGoods: performanceData.bannedItems,
-        transportationInfo: performanceData.transportation,
-        remark: performanceData.remark,
-      },
-      timeTables: timeTables.map(tt => ({
-        performanceDate: tt.date,
-        startTime: tt.start,
-        endTime: tt.end,
-        hallId: 0, // TODO: 실제 홀 ID를 사용하도록 수정 필요
-        artists: tt.artists.map(artistName => ({ // TODO: 아티스트 이름이 아닌 ID를 사용하도록 수정 필요
-          artistId: 0, 
-          type: "MAIN"
-        }))
-      })),
-      reservationInfos: reservationInfos.map(ri => ({
-        openDateTime: ri.openDate,
-        closeDateTime: ri.closeDate,
-        type: ri.type,
-        ticketURL: ri.ticketUrl,
-        remark: ri.remark,
-      })),
-    };
-
-    return await apiCall<Festival>('/api/admin/performance', {
-      method: 'POST',
-      body: JSON.stringify(requestBody),
-    });
-  } catch (error) {
-    console.warn('API call failed, falling back to mock for create festival:', error);
-    // ... Mock data logic ...
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newFestival: Festival = {
-          ...festival,
-          id: (festivals.length + 1).toString(),
-        };
-        festivals.push(newFestival);
-        resolve(newFestival);
-      }, 500);
-    });
-  }
+  // Always try the real API call first
+  const requestBody = convertToRequestFormat(festival, password);
+  return await apiCall<Festival>('/api/admin/performance', {
+    method: 'POST',
+    body: JSON.stringify(requestBody),
+  });
 };
 
-export const updateFestival = async (id: string, festivalUpdate: Partial<Festival>, password: string): Promise<Festival> => {
-  try {
-    const { timeTables = [], reservationInfos = [], ...performanceData } = festivalUpdate;
-
-    const requestBody = {
-      password,
-      performance: {
-        name: performanceData.name,
-        placeId: 0, // TODO: 실제 장소 ID를 사용하도록 수정 필요
-        startDate: performanceData.startDate,
-        endDate: performanceData.endDate,
-        posterUrl: performanceData.poster,
-        banGoods: performanceData.bannedItems,
-        transportationInfo: performanceData.transportation,
-        remark: performanceData.remark,
-      },
-      timeTables: timeTables.map(tt => ({
-        performanceDate: tt.date,
-        startTime: tt.start,
-        endTime: tt.end,
-        hallId: 0, // TODO: 실제 홀 ID를 사용하도록 수정 필요
-        artists: tt.artists.map(artistName => ({ // TODO: 아티스트 이름이 아닌 ID를 사용하도록 수정 필요
-          artistId: 0, 
-          type: "MAIN"
-        }))
-      })),
-      reservationInfos: reservationInfos.map(ri => ({
-        openDateTime: ri.openDate,
-        closeDateTime: ri.closeDate,
-        type: ri.type,
-        ticketURL: ri.ticketUrl,
-        remark: ri.remark,
-      })),
-    };
-
-    return await apiCall<Festival>(`/api/admin/performance/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(requestBody),
-    });
-  } catch (error) {
-    console.warn('API call failed, falling back to mock for update festival:', error);
-    // ... Mock data logic ...
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = festivals.findIndex(f => f.id === id);
-        if (index === -1) {
-          reject(new Error('Festival not found'));
-          return;
-        }
-        festivals[index] = { ...festivals[index], ...festivalUpdate };
-        resolve(festivals[index]);
-      }, 500);
-    });
-  }
+export const updateFestival = async (id: number, festivalUpdate: Partial<Festival>, password: string): Promise<Festival> => {
+  const requestBody = convertToRequestFormat(festivalUpdate, password);
+  return await apiCall<Festival>(`/api/admin/performance/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(requestBody),
+  });
 };
 
-export const deleteFestival = async (id: string, password: string): Promise<void> => {
-  try {
-    await apiCall(`/api/admin/performance/${id}`, {
-      method: 'DELETE',
-      body: JSON.stringify({ password: password }),
-    });
-  } catch (error) {
-    console.warn('Using mock data for delete festival:', error);
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = festivals.findIndex(f => f.id === id);
-        if (index === -1) {
-          reject(new Error('Festival not found'));
-          return;
-        }
-        festivals = festivals.filter(f => f.id !== id);
-        resolve();
-      }, 500);
-    });
-  }
+export const deleteFestival = async (id: number, password: string): Promise<void> => {
+  return await apiCall(`/api/admin/performance/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ password: password }),
+  });
 }; 

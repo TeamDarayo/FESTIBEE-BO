@@ -20,15 +20,15 @@ export default function FestivalsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingFestival, setEditingFestival] = useState<Festival | null>(null);
-  const [openTimeTable, setOpenTimeTable] = useState<string | null>(null);
-  const [openReservation, setOpenReservation] = useState<string | null>(null);
+  const [openTimeTable, setOpenTimeTable] = useState<number | null>(null);
+  const [openReservation, setOpenReservation] = useState<number | null>(null);
   
   // 비밀번호 모달 상태
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{
     type: 'create' | 'update' | 'delete';
     data?: any;
-    id?: string;
+    id?: number;
   } | null>(null);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function FestivalsPage() {
     setIsPasswordModalOpen(true);
   };
 
-  const handleDeleteFestival = async (id: string) => {
+  const handleDeleteFestival = async (id: number) => {
     setPendingAction({ type: 'delete', id });
     setIsPasswordModalOpen(true);
   };
@@ -92,7 +92,10 @@ export default function FestivalsPage() {
       setIsFormOpen(false);
     } catch (error: any) {
       // 서버 에러 응답을 alert로 표시
-      const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+      let errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+      if (error.message && error.message.includes('401')) {
+        errorMessage = '비밀번호를 확인해주세요.';
+      }
       alert(`오류: ${errorMessage}`);
       console.error('API Error:', error);
     } finally {

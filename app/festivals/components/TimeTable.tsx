@@ -108,8 +108,7 @@ export default function TimeTable({ timeTables }: TimeTableProps) {
                             className="bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors align-top"
                           >
                             <div className="font-medium text-blue-800 p-2">
-                              {/* TODO: Use artistNames if available */}
-                              {performance.artists.map(artist => `ID ${artist.artistId}`).join(', ')}
+                              {performance.artists.map(artist => artist.artistName || `ID ${artist.artistId}`).join(', ')}
                             </div>
                             <div className="text-sm text-blue-600 mt-1 p-2">
                               {performance.startTime} - {performance.endTime}
