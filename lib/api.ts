@@ -1,3 +1,5 @@
+import { Festival, TimeTable, ReservationInfo, FestivalResponse, TimeTableResponse, ReservationInfoResponse, TimeTableArtist } from '@/types/festival';
+
 // 아티스트 관련 타입 정의
 export interface ArtistAlias {
   id: number;
@@ -11,44 +13,44 @@ export interface Artist {
   aliases: ArtistAlias[];
 }
 
-// 공연(Festival) 관련 타입 정의
-export interface ArtistInTimeTable {
-  artistId: string;
-  type: string; // Enum (MAIN, SUB)
-}
+// 공연(Festival) 관련 타입 정의 - types/festival.ts에서 import하므로 제거
+// export interface ArtistInTimeTable {
+//   artistId: string;
+//   type: string; // Enum (MAIN, SUB)
+// }
 
-export interface TimeTable {
-  id: string;
-  date: string; // Date
-  start: string;
-  end: string;
-  hall: string;
-  artists: ArtistInTimeTable[];
-}
+// export interface TimeTable {
+//   id: string;
+//   date: string; // Date
+//   start: string;
+//   end: string;
+//   hall: string;
+//   artists: ArtistInTimeTable[];
+// }
 
-export interface ReservationInfo {
-  id: string;
-  openDate: string;
-  closeDate: string;
-  ticketUrl: string;
-  type: string;
-  remark: string;
-}
+// export interface ReservationInfo {
+//   id: string;
+//   openDate: string;
+//   closeDate: string;
+//   ticketUrl: string;
+//   type: string;
+//   remark: string;
+// }
 
-export interface Festival {
-  id: string;
-  name: string;
-  placeName: string;
-  placeAddress: string;
-  startDate: string;
-  endDate: string;
-  poster: string;
-  bannedItems: string;
-  transportation: string;
-  remark: string;
-  timeTables: TimeTable[];
-  reservationInfos: ReservationInfo[];
-}
+// export interface Festival {
+//   id: string;
+//   name: string;
+//   placeName: string;
+//   placeAddress: string;
+//   startDate: string;
+//   endDate: string;
+//   poster: string;
+//   bannedItems: string;
+//   transportation: string;
+//   remark: string;
+//   timeTables: TimeTable[];
+//   reservationInfos: ReservationInfo[];
+// }
 
 // Mock 데이터 - 아티스트
 const mockArtists: Artist[] = [
@@ -83,35 +85,35 @@ const mockArtists: Artist[] = [
 // Mock 데이터 - 공연
 const mockFestivals: Festival[] = [
   {
-    id: "1",
+    id: 1,
     name: "서울 재즈 페스티벌",
     placeName: "올림픽공원",
     placeAddress: "서울 송파구 올림픽로 424",
     startDate: "2024-07-15",
     endDate: "2024-07-17",
-    poster: "https://cdnticket.melon.co.kr/resource/image/upload/marketing/2025/05/20250529182542a5e38752-c31b-4810-a651-aacdfd973d8f.jpg",
-    bannedItems: "음식물, 유리병",
-    transportation: "지하철 5호선 올림픽공원역 3번 출구",
+    posterUrl: "https://cdnticket.melon.co.kr/resource/image/upload/marketing/2025/05/20250529182542a5e38752-c31b-4810-a651-aacdfd973d8f.jpg",
+    banGoods: "음식물, 유리병",
+    transportationInfo: "지하철 5호선 올림픽공원역 3번 출구",
     remark: "야외 행사, 우천시 우비 지참",
     timeTables: [
       {
-        id: "tt1",
-        date: "2024-07-15",
-        start: "18:00",
-        end: "20:00",
-        hall: "88잔디마당",
+        id: 1,
+        performanceDate: "2024-07-15",
+        startTime: "18:00",
+        endTime: "20:00",
+        hallName: "88잔디마당",
         artists: [
-          { artistId: "a1", type: "MAIN" },
-          { artistId: "a2", type: "SUB" }
+          { artistId: 1, type: "MAIN" },
+          { artistId: 2, type: "SUB" }
         ]
       }
     ],
     reservationInfos: [
       {
-        id: "r1",
-        openDate: "2024-06-01T10:00:00",
-        closeDate: "2024-07-14T23:59:59",
-        ticketUrl: "https://ticket.example.com/1",
+        id: 1,
+        openDateTime: "2024-06-01T10:00:00",
+        closeDateTime: "2024-07-14T23:59:59",
+        ticketURL: "https://ticket.example.com/1",
         type: "얼리버드",
         remark: "선착순"
       }
@@ -300,31 +302,60 @@ export const deleteArtist = async (id: number, password: string): Promise<void> 
 const transformFestivalResponse = (res: FestivalResponse): Festival => {
   const { performance, timeTables, reservationInfos, artists } = res;
   return {
-    ...performance,
+    id: performance.id,
+    name: performance.name,
+    placeName: performance.placeName,
+    placeAddress: performance.placeAddress,
+    startDate: performance.startDate,
+    endDate: performance.endDate,
+    posterUrl: performance.posterUrl,
+    banGoods: performance.banGoods,
+    transportationInfo: performance.transportationInfo,
+    remark: performance.remark,
     timeTables: timeTables.map(tt => ({
-      ...tt,
       id: tt.id,
+      performanceDate: tt.performanceDate,
+      startTime: tt.startTime,
+      endTime: tt.endTime,
       hallName: tt.performanceHall,
       artists: tt.artists.map(artist => ({
-        ...artist
+        timetableArtistId: artist.timetableArtistId,
+        artistId: artist.artistId,
+        artistName: artist.artistName,
+        type: artist.type,
       })),
     })),
     reservationInfos: reservationInfos.map(ri => ({
-      ...ri,
       id: ri.id,
+      openDateTime: ri.openDateTime,
+      closeDateTime: ri.closeDateTime,
+      type: ri.type,
+      ticketURL: ri.ticketURL,
+      remark: ri.remark,
     })),
     artists: artists.map(artist => ({
-      ...artist
+      id: artist.id,
+      displayName: artist.displayName,
     })),
   };
 };
 
 export const fetchFestivals = async (): Promise<Festival[]> => {
-  const responseData = await apiCall<FestivalResponse[]>('/api/admin/performance');
-  return responseData.map(transformFestivalResponse);
+  try {
+    const responseData = await apiCall<FestivalResponse[]>('/api/admin/performance');
+    return responseData.map(transformFestivalResponse);
+  } catch (error) {
+    console.warn('Using mock data for festivals:', error);
+    // API 호출 실패 시 mock 데이터 반환
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(festivals);
+      }, 500);
+    });
+  }
 };
 
-export const fetchFestivalById = async (id: string): Promise<Festival> => {
+export const fetchFestivalById = async (id: number): Promise<Festival> => {
   try {
     return await apiCall<Festival>(`/api/admin/performance/${id}`);
   } catch (error) {
