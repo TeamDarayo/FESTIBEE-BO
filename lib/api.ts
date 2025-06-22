@@ -122,32 +122,74 @@ const mockFestivals: Festival[] = [
 let artists = [...mockArtists];
 let festivals = [...mockFestivals];
 
-// API Base URL
-const API_BASE_URL = 'https://festival-app-358499057731.asia-northeast3.run.app';
+// API Base URL - 환경에 따라 동적으로 설정
+const getApiBaseUrl = () => {
+  // 브라우저 환경에서 현재 호스트가 localhost인지 확인
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    const port = window.location.port;
+    
+    // localhost에서 실행 중이면 8080 포트로 요청
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return `http://localhost:8080`;
+    }
+  }
+  
+  // 그렇지 않으면 원격 서버로 요청
+  return 'https://festival-app-358499057731.asia-northeast3.run.app';
+};
 
 // Helper function for API calls
-async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const response = await fetch(url, {
+async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const baseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+    ? 'http://localhost:8080' 
+    : 'https://dals2bo.com';
+
+  const url = `${baseUrl}${endpoint}`;
+  
+  const defaultOptions: RequestInit = {
     headers: {
       'Content-Type': 'application/json',
-      ...options?.headers,
+      ...options.headers,
     },
     ...options,
-  });
+  };
 
-  if (!response.ok) {
-    throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+  try {
+    const response = await fetch(url, defaultOptions);
+    
+    if (!response.ok) {
+      // 서버에서 에러 응답을 받았을 때
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      
+      try {
+        // 서버에서 JSON 형태로 에러 메시지를 보냈을 경우
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch {
+        // JSON 파싱이 실패하면 기본 에러 메시지 사용
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    // 응답이 비어있을 수 있음 (DELETE 요청 등)
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return {} as T;
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`API call failed for ${endpoint}:`, error);
+    throw error;
   }
-
-  return response.json();
 }
 
 // Mock API 구현 - 아티스트 (개발용)
 export const fetchArtists = async (): Promise<Artist[]> => {
   // 실제 API 호출 시도
   try {
-    return await apiCall<Artist[]>('/api/artists');
+    return await apiCall<Artist[]>('/artists');
   } catch (error) {
     console.warn('Using mock data for artists:', error);
     // API 호출 실패 시 mock 데이터 반환
@@ -161,7 +203,7 @@ export const fetchArtists = async (): Promise<Artist[]> => {
 
 export const fetchArtistById = async (id: number): Promise<Artist> => {
   try {
-    return await apiCall<Artist>(`/api/artists/${id}`);
+    return await apiCall<Artist>(`/artists/${id}`);
   } catch (error) {
     console.warn('Using mock data for artist:', error);
     return new Promise((resolve, reject) => {
@@ -177,11 +219,14 @@ export const fetchArtistById = async (id: number): Promise<Artist> => {
   }
 };
 
-export const createArtist = async (artist: Omit<Artist, 'id'>): Promise<Artist> => {
+export const createArtist = async (artist: Omit<Artist, 'id'>, password: string): Promise<Artist> => {
   try {
-    return await apiCall<Artist>('/api/artists', {
+    return await apiCall<Artist>('/artists', {
       method: 'POST',
-      body: JSON.stringify(artist),
+      body: JSON.stringify({
+        ...artist,
+        password: password
+      }),
     });
   } catch (error) {
     console.warn('Using mock data for create artist:', error);
@@ -198,11 +243,14 @@ export const createArtist = async (artist: Omit<Artist, 'id'>): Promise<Artist> 
   }
 };
 
-export const updateArtist = async (id: number, artistUpdate: Partial<Artist>): Promise<Artist> => {
+export const updateArtist = async (id: number, artistUpdate: Partial<Artist>, password: string): Promise<Artist> => {
   try {
-    return await apiCall<Artist>(`/api/artists/${id}`, {
+    return await apiCall<Artist>(`/artists/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(artistUpdate),
+      body: JSON.stringify({
+        ...artistUpdate,
+        password: password
+      }),
     });
   } catch (error) {
     console.warn('Using mock data for update artist:', error);
@@ -225,10 +273,11 @@ export const updateArtist = async (id: number, artistUpdate: Partial<Artist>): P
   }
 };
 
-export const deleteArtist = async (id: number): Promise<void> => {
+export const deleteArtist = async (id: number, password: string): Promise<void> => {
   try {
-    await apiCall(`/api/artists/${id}`, {
+    await apiCall(`/artists/${id}`, {
       method: 'DELETE',
+      body: JSON.stringify({ password: password }),
     });
   } catch (error) {
     console.warn('Using mock data for delete artist:', error);
@@ -250,7 +299,7 @@ export const deleteArtist = async (id: number): Promise<void> => {
 // Mock API 구현 - 공연
 export const fetchFestivals = async (): Promise<Festival[]> => {
   try {
-    return await apiCall<Festival[]>('/api/festivals');
+    return await apiCall<Festival[]>('/api/admin/performance');
   } catch (error) {
     console.warn('Using mock data for festivals:', error);
     return new Promise((resolve) => {
@@ -263,7 +312,7 @@ export const fetchFestivals = async (): Promise<Festival[]> => {
 
 export const fetchFestivalById = async (id: string): Promise<Festival> => {
   try {
-    return await apiCall<Festival>(`/api/festivals/${id}`);
+    return await apiCall<Festival>(`/api/admin/performance/${id}`);
   } catch (error) {
     console.warn('Using mock data for festival:', error);
     return new Promise((resolve, reject) => {
@@ -279,14 +328,98 @@ export const fetchFestivalById = async (id: string): Promise<Festival> => {
   }
 };
 
-export const createFestival = async (festival: Omit<Festival, 'id'>): Promise<Festival> => {
+const DUMMY_ARTIST_ID = 0; // Replace with actual artist ID logic
+const DUMMY_HALL_ID = 0; // Replace with actual hall ID logic
+const DUMMY_PLACE_ID = 0; // Replace with actual place ID logic
+
+// Helper function to convert form data to API request format
+function convertToRequestFormat(festivalData: any, password: string) {
+  const { 
+    timeTables = [], 
+    reservationInfos = [], 
+    ...performanceInfo 
+  } = festivalData;
+
+  return {
+    password,
+    performance: {
+      name: performanceInfo.name,
+      placeId: DUMMY_PLACE_ID, // TODO: Replace with real place ID from form
+      startDate: performanceInfo.startDate,
+      endDate: performanceInfo.endDate,
+      posterUrl: performanceInfo.poster, // Assumes form still uses 'poster'
+      banGoods: performanceInfo.bannedItems, // Assumes form still uses 'bannedItems'
+      transportationInfo: performanceInfo.transportation, // Assumes form still uses 'transportation'
+      remark: performanceInfo.remark,
+    },
+    timeTables: timeTables.map((tt: any) => ({
+      performanceDate: tt.date, // Assumes form uses 'date'
+      startTime: tt.startTime,
+      endTime: tt.endTime,
+      hallId: DUMMY_HALL_ID, // TODO: Replace with real hall ID from form
+      artists: (tt.artists as string[]).map(artistName => ({ // Assumes form provides artist names as string array
+        artistId: DUMMY_ARTIST_ID, // TODO: Map artist name to ID
+        type: "MAIN"
+      }))
+    })),
+    reservationInfos: reservationInfos.map((ri: any) => ({
+      openDateTime: ri.openTime, // Assumes form uses 'openTime'
+      closeDateTime: ri.closeTime, // Assumes form uses 'closeTime'
+      type: ri.type,
+      ticketURL: ri.saleSite, // Assumes form uses 'saleSite'
+      remark: ri.remark,
+    })),
+  };
+}
+
+export const createFestival = async (festival: Omit<Festival, 'id'>, password: string): Promise<Festival> => {
   try {
-    return await apiCall<Festival>('/api/festivals', {
+    const requestBody = convertToRequestFormat(festival, password);
+    // The response type might differ from the request type. Casting for now.
+    return await apiCall<Festival>('/api/admin/performance', {
       method: 'POST',
-      body: JSON.stringify(festival),
+      body: JSON.stringify(requestBody),
+    });
+    const { timeTables, reservationInfos, ...performanceData } = festival;
+
+    const requestBody = {
+      password,
+      performance: {
+        name: performanceData.name,
+        placeId: 0, // TODO: 실제 장소 ID를 사용하도록 수정 필요
+        startDate: performanceData.startDate,
+        endDate: performanceData.endDate,
+        posterUrl: performanceData.poster,
+        banGoods: performanceData.bannedItems,
+        transportationInfo: performanceData.transportation,
+        remark: performanceData.remark,
+      },
+      timeTables: timeTables.map(tt => ({
+        performanceDate: tt.date,
+        startTime: tt.start,
+        endTime: tt.end,
+        hallId: 0, // TODO: 실제 홀 ID를 사용하도록 수정 필요
+        artists: tt.artists.map(artistName => ({ // TODO: 아티스트 이름이 아닌 ID를 사용하도록 수정 필요
+          artistId: 0, 
+          type: "MAIN"
+        }))
+      })),
+      reservationInfos: reservationInfos.map(ri => ({
+        openDateTime: ri.openDate,
+        closeDateTime: ri.closeDate,
+        type: ri.type,
+        ticketURL: ri.ticketUrl,
+        remark: ri.remark,
+      })),
+    };
+
+    return await apiCall<Festival>('/api/admin/performance', {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
     });
   } catch (error) {
-    console.warn('Using mock data for create festival:', error);
+    console.warn('API call failed, falling back to mock for create festival:', error);
+    // ... Mock data logic ...
     return new Promise((resolve) => {
       setTimeout(() => {
         const newFestival: Festival = {
@@ -300,14 +433,48 @@ export const createFestival = async (festival: Omit<Festival, 'id'>): Promise<Fe
   }
 };
 
-export const updateFestival = async (id: string, festivalUpdate: Partial<Festival>): Promise<Festival> => {
+export const updateFestival = async (id: string, festivalUpdate: Partial<Festival>, password: string): Promise<Festival> => {
   try {
-    return await apiCall<Festival>(`/api/festivals/${id}`, {
+    const { timeTables = [], reservationInfos = [], ...performanceData } = festivalUpdate;
+
+    const requestBody = {
+      password,
+      performance: {
+        name: performanceData.name,
+        placeId: 0, // TODO: 실제 장소 ID를 사용하도록 수정 필요
+        startDate: performanceData.startDate,
+        endDate: performanceData.endDate,
+        posterUrl: performanceData.poster,
+        banGoods: performanceData.bannedItems,
+        transportationInfo: performanceData.transportation,
+        remark: performanceData.remark,
+      },
+      timeTables: timeTables.map(tt => ({
+        performanceDate: tt.date,
+        startTime: tt.start,
+        endTime: tt.end,
+        hallId: 0, // TODO: 실제 홀 ID를 사용하도록 수정 필요
+        artists: tt.artists.map(artistName => ({ // TODO: 아티스트 이름이 아닌 ID를 사용하도록 수정 필요
+          artistId: 0, 
+          type: "MAIN"
+        }))
+      })),
+      reservationInfos: reservationInfos.map(ri => ({
+        openDateTime: ri.openDate,
+        closeDateTime: ri.closeDate,
+        type: ri.type,
+        ticketURL: ri.ticketUrl,
+        remark: ri.remark,
+      })),
+    };
+
+    return await apiCall<Festival>(`/api/admin/performance/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(festivalUpdate),
+      body: JSON.stringify(requestBody),
     });
   } catch (error) {
-    console.warn('Using mock data for update festival:', error);
+    console.warn('API call failed, falling back to mock for update festival:', error);
+    // ... Mock data logic ...
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         const index = festivals.findIndex(f => f.id === id);
@@ -315,22 +482,18 @@ export const updateFestival = async (id: string, festivalUpdate: Partial<Festiva
           reject(new Error('Festival not found'));
           return;
         }
-        
-        festivals[index] = {
-          ...festivals[index],
-          ...festivalUpdate,
-        };
-        
+        festivals[index] = { ...festivals[index], ...festivalUpdate };
         resolve(festivals[index]);
       }, 500);
     });
   }
 };
 
-export const deleteFestival = async (id: string): Promise<void> => {
+export const deleteFestival = async (id: string, password: string): Promise<void> => {
   try {
-    await apiCall(`/api/festivals/${id}`, {
+    await apiCall(`/api/admin/performance/${id}`, {
       method: 'DELETE',
+      body: JSON.stringify({ password: password }),
     });
   } catch (error) {
     console.warn('Using mock data for delete festival:', error);

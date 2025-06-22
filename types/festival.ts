@@ -1,36 +1,39 @@
-export interface ArtistInTimeTable {
-  artistId: string;
-  type: string; // Enum (MAIN, SUB)
+export interface TimeTableArtist {
+  artistId: number;
+  type: string;
 }
 
 export interface TimeTable {
-  id: string;
-  date: string; // Date
-  start: string;
-  end: string;
-  hall: string;
-  artists: ArtistInTimeTable[];
+  id?: string;
+  performanceDate: string;
+  startTime: string;
+  endTime: string;
+  hallId: number;
+  hallName?: string; // Display Name
+  artists: TimeTableArtist[];
+  artistNames?: string[]; // For display in UI
 }
 
 export interface ReservationInfo {
-  id: string;
-  openDate: string;
-  closeDate: string;
-  ticketUrl: string;
+  id?: string;
+  openDateTime: string;
+  closeDateTime: string;
   type: string;
+  ticketURL: string;
   remark: string;
 }
 
 export interface Festival {
   id: string;
   name: string;
-  placeName: string;
-  placeAddress: string;
+  placeId: number;
+  placeName?: string;
+  placeAddress?: string;
   startDate: string;
   endDate: string;
-  poster: string;
-  bannedItems: string;
-  transportation: string;
+  posterUrl: string;
+  banGoods: string;
+  transportationInfo: string;
   remark: string;
   timeTables: TimeTable[];
   reservationInfos: ReservationInfo[];

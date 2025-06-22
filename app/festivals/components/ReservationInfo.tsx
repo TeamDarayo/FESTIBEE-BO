@@ -23,27 +23,27 @@ export default function ReservationInfo({ reservationInfos }: ReservationInfoPro
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="font-semibold text-gray-700">예매 유형</TableHead>
-              <TableHead className="font-semibold text-gray-700">오픈 날짜</TableHead>
-              <TableHead className="font-semibold text-gray-700">마감 날짜</TableHead>
+              <TableHead className="font-semibold text-gray-700">오픈 일시</TableHead>
+              <TableHead className="font-semibold text-gray-700">마감 일시</TableHead>
               <TableHead className="font-semibold text-gray-700">티켓 URL</TableHead>
               <TableHead className="font-semibold text-gray-700">비고</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {reservationInfos.map((reservationInfo) => (
-              <TableRow key={reservationInfo.id} className="hover:bg-gray-50">
+            {reservationInfos.map((info) => (
+              <TableRow key={info.id} className="hover:bg-gray-50">
                 <TableCell className="font-medium text-gray-900">
-                  {reservationInfo.type}
+                  {info.type}
                 </TableCell>
                 <TableCell className="text-gray-900">
-                  {format(new Date(reservationInfo.openDate), 'yyyy/MM/dd HH:mm')}
+                  {format(new Date(info.openDateTime), 'yyyy/MM/dd HH:mm')}
                 </TableCell>
                 <TableCell className="text-gray-900">
-                  {format(new Date(reservationInfo.closeDate), 'yyyy/MM/dd HH:mm')}
+                  {format(new Date(info.closeDateTime), 'yyyy/MM/dd HH:mm')}
                 </TableCell>
                 <TableCell className="text-blue-600 hover:text-blue-700">
                   <a 
-                    href={reservationInfo.ticketUrl} 
+                    href={info.ticketURL} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="underline hover:no-underline"
@@ -52,7 +52,7 @@ export default function ReservationInfo({ reservationInfos }: ReservationInfoPro
                   </a>
                 </TableCell>
                 <TableCell className="text-gray-900">
-                  {reservationInfo.remark || '-'}
+                  {info.remark || '-'}
                 </TableCell>
               </TableRow>
             ))}

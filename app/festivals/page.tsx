@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Festival } from '@/types/festival';
-import { fetchFestivals, createFestival, updateFestival } from '@/lib/api';
+import { fetchFestivals, createFestival, updateFestival, deleteFestival } from '@/lib/api';
 import { format } from 'date-fns';
 import FestivalForm from './components/FestivalForm';
 import Image from 'next/image';
@@ -10,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from '@/components/ui/table';
 import TimeTable from './components/TimeTable';
 import ReservationInfo from './components/ReservationInfo';
+import PasswordModal from '@/components/PasswordModal';
 import React from 'react';
-import { FiPlus } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
 
 export default function FestivalsPage() {
   const [festivals, setFestivals] = useState<Festival[]>([]);
@@ -21,6 +22,14 @@ export default function FestivalsPage() {
   const [editingFestival, setEditingFestival] = useState<Festival | null>(null);
   const [openTimeTable, setOpenTimeTable] = useState<string | null>(null);
   const [openReservation, setOpenReservation] = useState<string | null>(null);
+  
+  // 비밀번호 모달 상태
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'create' | 'update' | 'delete';
+    data?: any;
+    id?: string;
+  } | null>(null);
 
   useEffect(() => {
     loadFestivals();
@@ -40,25 +49,61 @@ export default function FestivalsPage() {
   };
 
   const handleCreateFestival = async (festivalData: Omit<Festival, 'id'>) => {
-    try {
-      await createFestival(festivalData);
-      await loadFestivals();
-    } catch (error) {
-      console.error('Error creating festival:', error);
-      throw error;
-    }
+    setPendingAction({ type: 'create', data: festivalData });
+    setIsPasswordModalOpen(true);
   };
 
   const handleUpdateFestival = async (festivalData: Omit<Festival, 'id'>) => {
     if (!editingFestival) return;
+    setPendingAction({ type: 'update', data: festivalData, id: editingFestival.id });
+    setIsPasswordModalOpen(true);
+  };
+
+  const handleDeleteFestival = async (id: string) => {
+    setPendingAction({ type: 'delete', id });
+    setIsPasswordModalOpen(true);
+  };
+
+  const handlePasswordConfirm = async (password: string) => {
+    if (!pendingAction) return;
+
     try {
-      await updateFestival(editingFestival.id, festivalData);
+      switch (pendingAction.type) {
+        case 'create':
+          await createFestival(pendingAction.data, password);
+          alert('페스티벌이 성공적으로 추가되었습니다.');
+          break;
+        case 'update':
+          if (pendingAction.id) {
+            await updateFestival(pendingAction.id, pendingAction.data, password);
+            alert('페스티벌이 성공적으로 수정되었습니다.');
+          }
+          break;
+        case 'delete':
+          if (pendingAction.id) {
+            await deleteFestival(pendingAction.id, password);
+            alert('페스티벌이 성공적으로 삭제되었습니다.');
+          }
+          break;
+      }
+      
       await loadFestivals();
       setEditingFestival(null);
-    } catch (error) {
-      console.error('Error updating festival:', error);
-      throw error;
+      setIsFormOpen(false);
+    } catch (error: any) {
+      // 서버 에러 응답을 alert로 표시
+      const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+      alert(`오류: ${errorMessage}`);
+      console.error('API Error:', error);
+    } finally {
+      setIsPasswordModalOpen(false);
+      setPendingAction(null);
     }
+  };
+
+  const handlePasswordCancel = () => {
+    setIsPasswordModalOpen(false);
+    setPendingAction(null);
   };
 
   const handleEdit = (festival: Festival) => {
@@ -69,6 +114,26 @@ export default function FestivalsPage() {
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setEditingFestival(null);
+  };
+
+  const getPasswordModalTitle = () => {
+    if (!pendingAction) return '';
+    switch (pendingAction.type) {
+      case 'create': return '페스티벌 추가';
+      case 'update': return '페스티벌 수정';
+      case 'delete': return '페스티벌 삭제';
+      default: return '관리자 인증';
+    }
+  };
+
+  const getPasswordModalMessage = () => {
+    if (!pendingAction) return '';
+    switch (pendingAction.type) {
+      case 'create': return '새 페스티벌을 추가하기 위해 관리자 비밀번호를 입력해주세요.';
+      case 'update': return '페스티벌을 수정하기 위해 관리자 비밀번호를 입력해주세요.';
+      case 'delete': return '페스티벌을 삭제하기 위해 관리자 비밀번호를 입력해주세요.';
+      default: return '관리자 비밀번호를 입력해주세요.';
+    }
   };
 
   if (isLoading) {
@@ -120,13 +185,13 @@ export default function FestivalsPage() {
                   <React.Fragment key={festival.id}>
                     <TableRow>
                       <TableCell>
-                        <Image src={festival.poster} alt={festival.name} width={48} height={48} className="rounded-md" />
+                        <Image src={festival.posterUrl} alt={festival.name} width={48} height={48} className="rounded-md" />
                       </TableCell>
                       <TableCell className="font-medium">{festival.name}</TableCell>
-                      <TableCell>{festival.placeName}<br/><span className="text-xs text-gray-500">{festival.placeAddress}</span></TableCell>
+                      <TableCell>{festival.placeName || '미정'}<br/><span className="text-xs text-gray-500">{festival.placeAddress || ''}</span></TableCell>
                       <TableCell>{`${festival.startDate} ~ ${festival.endDate}`}</TableCell>
-                      <TableCell>{festival.bannedItems}</TableCell>
-                      <TableCell>{festival.transportation}</TableCell>
+                      <TableCell>{festival.banGoods}</TableCell>
+                      <TableCell>{festival.transportationInfo}</TableCell>
                       <TableCell>{festival.remark}</TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button size="sm" variant="outline" onClick={() => {
@@ -150,7 +215,17 @@ export default function FestivalsPage() {
                           {openReservation === festival.id ? '닫기' : '예매정보'}
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => handleEdit(festival)}>
+                          <FiEdit2 className="mr-1" />
                           수정
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleDeleteFestival(festival.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <FiTrash2 className="mr-1" />
+                          삭제
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -181,6 +256,14 @@ export default function FestivalsPage() {
         onSubmit={editingFestival ? handleUpdateFestival : handleCreateFestival}
         onCancel={handleCloseForm}
         initialData={editingFestival || undefined}
+      />
+
+      <PasswordModal
+        isOpen={isPasswordModalOpen}
+        onConfirm={handlePasswordConfirm}
+        onCancel={handlePasswordCancel}
+        title={getPasswordModalTitle()}
+        message={getPasswordModalMessage()}
       />
     </div>
   );

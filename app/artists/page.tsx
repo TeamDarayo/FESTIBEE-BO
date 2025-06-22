@@ -5,6 +5,7 @@ import { Artist, fetchArtists, deleteArtist, createArtist, updateArtist } from '
 import ArtistForm from './components/ArtistForm';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from '@/components/ui/table';
+import PasswordModal from '@/components/PasswordModal';
 import React from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiEye } from 'react-icons/fi';
 
@@ -15,6 +16,14 @@ export default function ArtistsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingArtist, setEditingArtist] = useState<Artist | null>(null);
   const [selectedArtist, setSelectedArtist] = useState<Artist | null>(null);
+  
+  // 비밀번호 모달 상태
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'create' | 'update' | 'delete';
+    data?: any;
+    id?: number;
+  } | null>(null);
 
   useEffect(() => {
     loadArtists();
@@ -33,15 +42,62 @@ export default function ArtistsPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('정말로 이 아티스트를 삭제하시겠습니까?')) {
-      try {
-        await deleteArtist(id);
-        await loadArtists();
-      } catch (error) {
-        console.error('Error deleting artist:', error);
+  const handleCreateArtist = async (artistData: Omit<Artist, 'id'>) => {
+    setPendingAction({ type: 'create', data: artistData });
+    setIsPasswordModalOpen(true);
+  };
+
+  const handleUpdateArtist = async (artistData: Omit<Artist, 'id'>) => {
+    if (!editingArtist) return;
+    setPendingAction({ type: 'update', data: artistData, id: editingArtist.id });
+    setIsPasswordModalOpen(true);
+  };
+
+  const handleDeleteArtist = async (id: number) => {
+    setPendingAction({ type: 'delete', id });
+    setIsPasswordModalOpen(true);
+  };
+
+  const handlePasswordConfirm = async (password: string) => {
+    if (!pendingAction) return;
+
+    try {
+      switch (pendingAction.type) {
+        case 'create':
+          await createArtist(pendingAction.data, password);
+          alert('아티스트가 성공적으로 추가되었습니다.');
+          break;
+        case 'update':
+          if (pendingAction.id) {
+            await updateArtist(pendingAction.id, pendingAction.data, password);
+            alert('아티스트가 성공적으로 수정되었습니다.');
+          }
+          break;
+        case 'delete':
+          if (pendingAction.id) {
+            await deleteArtist(pendingAction.id, password);
+            alert('아티스트가 성공적으로 삭제되었습니다.');
+          }
+          break;
       }
+      
+      await loadArtists();
+      setEditingArtist(null);
+      setIsFormOpen(false);
+    } catch (error: any) {
+      // 서버 에러 응답을 alert로 표시
+      const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+      alert(`오류: ${errorMessage}`);
+      console.error('API Error:', error);
+    } finally {
+      setIsPasswordModalOpen(false);
+      setPendingAction(null);
     }
+  };
+
+  const handlePasswordCancel = () => {
+    setIsPasswordModalOpen(false);
+    setPendingAction(null);
   };
 
   const handleEdit = (artist: Artist) => {
@@ -62,17 +118,23 @@ export default function ArtistsPage() {
     setSelectedArtist(null);
   };
 
-  const handleSubmit = async (data: Omit<Artist, 'id'>) => {
-    try {
-      if (editingArtist) {
-        await updateArtist(editingArtist.id, data);
-      } else {
-        await createArtist(data);
-      }
-      await loadArtists();
-      handleCloseForm();
-    } catch (error) {
-      console.error('Error saving artist:', error);
+  const getPasswordModalTitle = () => {
+    if (!pendingAction) return '';
+    switch (pendingAction.type) {
+      case 'create': return '아티스트 추가';
+      case 'update': return '아티스트 수정';
+      case 'delete': return '아티스트 삭제';
+      default: return '관리자 인증';
+    }
+  };
+
+  const getPasswordModalMessage = () => {
+    if (!pendingAction) return '';
+    switch (pendingAction.type) {
+      case 'create': return '새 아티스트를 추가하기 위해 관리자 비밀번호를 입력해주세요.';
+      case 'update': return '아티스트를 수정하기 위해 관리자 비밀번호를 입력해주세요.';
+      case 'delete': return '아티스트를 삭제하기 위해 관리자 비밀번호를 입력해주세요.';
+      default: return '관리자 비밀번호를 입력해주세요.';
     }
   };
 
@@ -161,7 +223,7 @@ export default function ArtistsPage() {
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        onClick={() => handleDelete(artist.id)}
+                        onClick={() => handleDeleteArtist(artist.id)}
                         className="text-red-600 hover:text-red-700"
                       >
                         <FiTrash2 className="mr-1" />
@@ -238,9 +300,17 @@ export default function ArtistsPage() {
 
       <ArtistForm
         isOpen={isFormOpen}
-        onSubmit={handleSubmit}
+        onSubmit={editingArtist ? handleUpdateArtist : handleCreateArtist}
         onCancel={handleCloseForm}
         initialData={editingArtist || undefined}
+      />
+
+      <PasswordModal
+        isOpen={isPasswordModalOpen}
+        onConfirm={handlePasswordConfirm}
+        onCancel={handlePasswordCancel}
+        title={getPasswordModalTitle()}
+        message={getPasswordModalMessage()}
       />
     </div>
   );
