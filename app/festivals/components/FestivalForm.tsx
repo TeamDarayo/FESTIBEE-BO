@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Festival, TimeTable, ReservationInfo, TimeTableArtist } from '@/types/festival';
+import { Place, PlaceRequestBody } from '@/types/place';
+import { fetchPlaces, createPlace } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import PlaceForm from './PlaceForm';
+import PasswordModal from '@/components/PasswordModal';
 import React from 'react';
 
 interface FestivalFormProps {
@@ -30,10 +35,12 @@ const getInitialFormData = (initialData?: Festival): Omit<Festival, 'id'> => ({
 
 export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }: FestivalFormProps) {
   const [formData, setFormData] = useState<Omit<Festival, 'id'>>(() => getInitialFormData(initialData));
-
-  useEffect(() => {
-    setFormData(getInitialFormData(initialData));
-  }, [initialData, isOpen]);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
+  const [isPlaceFormOpen, setIsPlaceFormOpen] = useState(false);
+  
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [pendingPlaceData, setPendingPlaceData] = useState<PlaceRequestBody | null>(null);
 
   const [newTimeTable, setNewTimeTable] = useState<Omit<TimeTable, 'id'>>({
     performanceDate: '',
@@ -51,6 +58,63 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
     type: '',
     remark: '',
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      loadPlaces();
+      setFormData(getInitialFormData(initialData));
+    }
+  }, [initialData, isOpen]);
+
+  const loadPlaces = async () => {
+    setIsLoadingPlaces(true);
+    try {
+      const data = await fetchPlaces();
+      setPlaces(data);
+    } catch (error) {
+      console.error("Failed to fetch places", error);
+      alert("장소 목록을 불러오는데 실패했습니다.");
+    } finally {
+      setIsLoadingPlaces(false);
+    }
+  };
+
+  const handlePlaceSelect = (placeIdStr: string) => {
+    const placeId = parseInt(placeIdStr, 10);
+    const selectedPlace = places.find(p => p.id === placeId);
+    if (selectedPlace) {
+      setFormData(prev => ({
+        ...prev,
+        placeId: selectedPlace.id,
+        placeName: selectedPlace.placeName,
+        placeAddress: selectedPlace.address,
+        // Reset timetables when place changes as halls will be different
+        timeTables: [], 
+      }));
+    }
+  };
+  
+  const handleCreatePlace = async (placeData: PlaceRequestBody) => {
+    setPendingPlaceData(placeData);
+    setIsPasswordModalOpen(true);
+  };
+  
+  const handlePasswordConfirmForPlace = async (password: string) => {
+    if (!pendingPlaceData) return;
+    try {
+      await createPlace(pendingPlaceData, password);
+      alert('장소가 성공적으로 추가되었습니다.');
+      setIsPlaceFormOpen(false);
+      await loadPlaces();
+    } catch (error: any) {
+      alert(`장소 추가 오류: ${error.message}`);
+    } finally {
+      setIsPasswordModalOpen(false);
+      setPendingPlaceData(null);
+    }
+  };
+
+  const selectedPlace = places.find(p => p.id === formData.placeId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,12 +229,23 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
               <Input id="name" required value={formData.name} onChange={handleInputChange} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="placeName">장소명</Label>
-              <Input id="placeName" value={formData.placeName} onChange={handleInputChange} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="placeAddress">주소</Label>
-              <Input id="placeAddress" value={formData.placeAddress} onChange={handleInputChange} />
+              <Label htmlFor="place">장소</Label>
+              <div className="flex gap-2">
+                <Select onValueChange={handlePlaceSelect} value={formData.placeId?.toString()}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="장소를 선택하세요" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isLoadingPlaces ? (
+                      <SelectItem value="loading" disabled>불러오는 중...</SelectItem>
+                    ) : (
+                      places.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.placeName}</SelectItem>)
+                    )}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" onClick={() => setIsPlaceFormOpen(true)}>새 장소 추가</Button>
+              </div>
+              {selectedPlace && <p className="text-sm text-gray-500 mt-1">{selectedPlace.address}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="startDate">시작일</Label>
@@ -215,7 +290,14 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
                 <Input type="date" value={newTimeTable.performanceDate} onChange={e => setNewTimeTable(p => ({...p, performanceDate: e.target.value}))} />
                 <Input placeholder="시작시간 (HH:mm)" value={newTimeTable.startTime} onChange={e => setNewTimeTable(p => ({...p, startTime: e.target.value}))} />
                 <Input placeholder="종료시간 (HH:mm)" value={newTimeTable.endTime} onChange={e => setNewTimeTable(p => ({...p, endTime: e.target.value}))} />
-                <Input type="number" placeholder="홀 ID" value={newTimeTable.hallId} onChange={e => setNewTimeTable(p => ({...p, hallId: parseInt(e.target.value, 10) || 0}))} />
+                <Select onValueChange={(hallId) => setNewTimeTable(p => ({...p, hallId: parseInt(hallId, 10)}))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="홀 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedPlace?.halls.map(h => <SelectItem key={h.id} value={h.id.toString()}>{h.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <Button type="button" onClick={handleAddTimeTable}>타임테이블 추가</Button>
             </div>
@@ -252,6 +334,18 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
           </div>
         </form>
       </div>
+      <PlaceForm 
+        isOpen={isPlaceFormOpen}
+        onCancel={() => setIsPlaceFormOpen(false)}
+        onSubmit={handleCreatePlace}
+      />
+      <PasswordModal 
+        isOpen={isPasswordModalOpen}
+        onCancel={() => setIsPasswordModalOpen(false)}
+        onConfirm={handlePasswordConfirmForPlace}
+        title="장소 추가"
+        message="새 장소를 추가하려면 관리자 비밀번호를 입력해주세요."
+      />
     </div>
   );
 } 

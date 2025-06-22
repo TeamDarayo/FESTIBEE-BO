@@ -358,29 +358,29 @@ function convertToRequestFormat(festivalData: any, password: string) {
     password,
     performance: {
       name: performanceInfo.name,
-      placeId: DUMMY_PLACE_ID, // TODO: Replace with real place ID from form
+      placeId: performanceInfo.placeId,
       startDate: performanceInfo.startDate,
       endDate: performanceInfo.endDate,
-      posterUrl: performanceInfo.posterUrl, // Corrected from poster
-      banGoods: performanceInfo.banGoods, // Corrected from bannedItems
-      transportationInfo: performanceInfo.transportationInfo, // Corrected from transportation
+      posterUrl: performanceInfo.posterUrl,
+      banGoods: performanceInfo.banGoods,
+      transportationInfo: performanceInfo.transportationInfo,
       remark: performanceInfo.remark,
     },
     timeTables: timeTables.map((tt: any) => ({
-      performanceDate: tt.performanceDate, // Assumes form uses 'performanceDate'
+      performanceDate: tt.performanceDate,
       startTime: tt.startTime,
       endTime: tt.endTime,
-      hallId: DUMMY_HALL_ID, // TODO: Replace with real hall ID from form
-      artists: (tt.artists as TimeTableArtist[]).map(artist => ({ // Assumes form provides artist objects
-        artistId: artist.artistId, // TODO: Map artist name to ID
+      hallId: DUMMY_HALL_ID,
+      artists: (tt.artists as TimeTableArtist[]).map(artist => ({
+        artistId: artist.artistId,
         type: artist.type,
       }))
     })),
     reservationInfos: reservationInfos.map((ri: any) => ({
-      openDateTime: ri.openDateTime, // Assumes form uses 'openDateTime'
-      closeDateTime: ri.closeDateTime, // Assumes form uses 'closeDateTime'
+      openDateTime: ri.openDateTime,
+      closeDateTime: ri.closeDateTime,
       type: ri.type,
-      ticketURL: ri.ticketURL, // Assumes form uses 'ticketURL'
+      ticketURL: ri.ticketURL,
       remark: ri.remark,
     })),
   };
@@ -407,5 +407,21 @@ export const deleteFestival = async (id: number, password: string): Promise<void
   return await apiCall(`/api/admin/performance/${id}`, {
     method: 'DELETE',
     body: JSON.stringify({ password: password }),
+  });
+};
+
+import { Place, PlaceRequestBody } from '@/types/place';
+
+export const fetchPlaces = async (): Promise<Place[]> => {
+  return await apiCall<Place[]>('/api/admin/place');
+};
+
+export const createPlace = async (placeData: PlaceRequestBody, password: string): Promise<Place> => {
+  return await apiCall<Place>('/api/admin/place', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...placeData,
+      password, // Assuming password is required as per convention
+    }),
   });
 }; 
