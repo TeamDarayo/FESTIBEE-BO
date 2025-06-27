@@ -1,4 +1,4 @@
-import { Festival, TimeTable, ReservationInfo, FestivalResponse, TimeTableResponse, ReservationInfoResponse, TimeTableArtist } from '@/types/festival';
+import { Festival, TimeTable, ReservationInfo, FestivalResponse, TimeTableResponse, ReservationInfoResponse, TimeTableArtist, FestivalCreateRequest, TimeTableRequest, ReservationInfoRequest, PerformanceRequest, TimeTableAddRequest } from '@/types/festival';
 
 // 아티스트 관련 타입 정의
 export interface ArtistAlias {
@@ -191,7 +191,7 @@ async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<
 export const fetchArtists = async (): Promise<Artist[]> => {
   // 실제 API 호출 시도
   try {
-    return await apiCall<Artist[]>('/artists');
+    return await apiCall<Artist[]>('/api/admin/artist');
   } catch (error) {
     console.warn('Using mock data for artists:', error);
     // API 호출 실패 시 mock 데이터 반환
@@ -222,80 +222,76 @@ export const fetchArtistById = async (id: number): Promise<Artist> => {
 };
 
 export const createArtist = async (artist: Omit<Artist, 'id'>, password: string): Promise<Artist> => {
-  try {
-    return await apiCall<Artist>('/artists', {
-      method: 'POST',
-      body: JSON.stringify({
-        ...artist,
-        password: password
-      }),
-    });
-  } catch (error) {
-    console.warn('Using mock data for create artist:', error);
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newArtist: Artist = {
-          ...artist,
-          id: artists.length + 1,
-        };
-        artists.push(newArtist);
-        resolve(newArtist);
-      }, 500);
-    });
-  }
+  return await apiCall<Artist>('/api/admin/artist', {
+    method: 'POST',
+    body: JSON.stringify({
+      password: password,
+      name: artist.name,
+      description: artist.description
+    }),
+  });
 };
 
 export const updateArtist = async (id: number, artistUpdate: Partial<Artist>, password: string): Promise<Artist> => {
+  return await apiCall<Artist>(`/api/admin/artist/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      name: artistUpdate.name,
+      description: artistUpdate.description
+    }),
+  });
+};
+
+export const deleteArtist = async (id: number, password: string): Promise<void> => {
+  return await apiCall(`/api/admin/artist/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ password: password }),
+  });
+};
+
+export const updateArtistAlias = async (aliasId: number, alias: string): Promise<ArtistAlias> => {
   try {
-    return await apiCall<Artist>(`/artists/${id}`, {
+    return await apiCall<ArtistAlias>(`/api/admin/artist/aliases/${aliasId}`, {
       method: 'PUT',
-      body: JSON.stringify({
-        ...artistUpdate,
-        password: password
-      }),
+      body: JSON.stringify({ alias }),
     });
   } catch (error) {
-    console.warn('Using mock data for update artist:', error);
+    console.warn('Using mock data for update artist alias:', error);
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        const index = artists.findIndex(a => a.id === id);
-        if (index === -1) {
-          reject(new Error('Artist not found'));
-          return;
+        // Mock implementation - find and update alias in artists array
+        for (const artist of artists) {
+          const aliasIndex = artist.aliases.findIndex(a => a.id === aliasId);
+          if (aliasIndex !== -1) {
+            artist.aliases[aliasIndex] = {
+              ...artist.aliases[aliasIndex],
+              name: alias
+            };
+            resolve(artist.aliases[aliasIndex]);
+            return;
+          }
         }
-        
-        artists[index] = {
-          ...artists[index],
-          ...artistUpdate,
-        };
-        
-        resolve(artists[index]);
+        reject(new Error('Alias not found'));
       }, 500);
     });
   }
 };
 
-export const deleteArtist = async (id: number, password: string): Promise<void> => {
-  try {
-    await apiCall(`/artists/${id}`, {
-      method: 'DELETE',
-      body: JSON.stringify({ password: password }),
-    });
-  } catch (error) {
-    console.warn('Using mock data for delete artist:', error);
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = artists.findIndex(a => a.id === id);
-        if (index === -1) {
-          reject(new Error('Artist not found'));
-          return;
-        }
-        
-        artists = artists.filter(a => a.id !== id);
-        resolve();
-      }, 500);
-    });
-  }
+export const addArtistAliases = async (artistId: number, aliases: string[], password: string): Promise<ArtistAlias[]> => {
+  return await apiCall<ArtistAlias[]>('/api/admin/artist/aliases', {
+    method: 'POST',
+    body: JSON.stringify({
+      password: password,
+      artistId: artistId,
+      aliases: aliases
+    }),
+  });
+};
+
+export const deleteArtistAlias = async (aliasId: number): Promise<void> => {
+  return await apiCall(`/api/admin/artist/aliases/${aliasId}`, {
+    method: 'DELETE',
+  });
 };
 
 // Helper to transform the nested API response to our flat frontend Festival type
@@ -373,12 +369,8 @@ export const fetchFestivalById = async (id: number): Promise<Festival> => {
   }
 };
 
-const DUMMY_ARTIST_ID = 0; // Replace with actual artist ID logic
-const DUMMY_HALL_ID = 0; // Replace with actual hall ID logic
-const DUMMY_PLACE_ID = 0; // Replace with actual place ID logic
-
 // Helper function to convert form data to API request format
-function convertToRequestFormat(festivalData: any, password: string) {
+function convertToRequestFormat(festivalData: any, password: string): FestivalCreateRequest {
   const { 
     timeTables = [], 
     reservationInfos = [], 
@@ -397,19 +389,19 @@ function convertToRequestFormat(festivalData: any, password: string) {
       transportationInfo: performanceInfo.transportationInfo,
       remark: performanceInfo.remark,
     },
-    timeTables: timeTables.map((tt: any) => ({
+    timeTables: timeTables.map((tt: any): TimeTableRequest => ({
       performanceDate: tt.performanceDate,
-      startTime: tt.startTime,
-      endTime: tt.endTime,
-      hallId: DUMMY_HALL_ID,
+      startTime: tt.startTime.length === 4 ? `${tt.startTime.slice(0, 2)}:${tt.startTime.slice(2)}` : tt.startTime,
+      endTime: tt.endTime.length === 4 ? `${tt.endTime.slice(0, 2)}:${tt.endTime.slice(2)}` : tt.endTime,
+      hallId: tt.hallId || 0, // 실제 hallId 사용, 없으면 0
       artists: (tt.artists as TimeTableArtist[]).map(artist => ({
         artistId: artist.artistId,
         type: artist.type,
       }))
     })),
-    reservationInfos: reservationInfos.map((ri: any) => ({
-      openDateTime: ri.openDateTime,
-      closeDateTime: ri.closeDateTime,
+    reservationInfos: reservationInfos.map((ri: any): ReservationInfoRequest => ({
+      openDateTime: ri.openDateTime.includes('T') && !ri.openDateTime.includes('Z') ? `${ri.openDateTime}:00Z` : ri.openDateTime,
+      closeDateTime: ri.closeDateTime.includes('T') && !ri.closeDateTime.includes('Z') ? `${ri.closeDateTime}:00Z` : ri.closeDateTime,
       type: ri.type,
       ticketURL: ri.ticketURL,
       remark: ri.remark,
@@ -420,24 +412,34 @@ function convertToRequestFormat(festivalData: any, password: string) {
 export const createFestival = async (festival: Omit<Festival, 'id'>, password: string): Promise<Festival> => {
   // Always try the real API call first
   const requestBody = convertToRequestFormat(festival, password);
+  
+  // 디버깅을 위한 로깅
+  console.log('API Request Body:', JSON.stringify(requestBody, null, 2));
+  
   return await apiCall<Festival>('/api/admin/performance', {
     method: 'POST',
     body: JSON.stringify(requestBody),
   });
 };
 
+export const addTimeTable = async (performanceId: number, timeTableData: TimeTableAddRequest): Promise<TimeTableResponse> => {
+  return await apiCall<TimeTableResponse>(`/api/admin/performance/${performanceId}/timetable`, {
+    method: 'POST',
+    body: JSON.stringify(timeTableData),
+  });
+};
+
 export const updateFestival = async (id: number, festivalUpdate: Partial<Festival>, password: string): Promise<Festival> => {
   const requestBody = convertToRequestFormat(festivalUpdate, password);
-  return await apiCall<Festival>(`/api/admin/performance/${id}`, {
-    method: 'PUT',
+  return await apiCall<Festival>('/api/admin/performance', {
+    method: 'POST',
     body: JSON.stringify(requestBody),
   });
 };
 
-export const deleteFestival = async (id: number, password: string): Promise<void> => {
+export const deleteFestival = async (id: number): Promise<void> => {
   return await apiCall(`/api/admin/performance/${id}`, {
     method: 'DELETE',
-    body: JSON.stringify({ password: password }),
   });
 };
 
@@ -447,12 +449,9 @@ export const fetchPlaces = async (): Promise<Place[]> => {
   return await apiCall<Place[]>('/api/admin/place');
 };
 
-export const createPlace = async (placeData: PlaceRequestBody, password: string): Promise<Place> => {
+export const createPlace = async (placeData: PlaceRequestBody): Promise<Place> => {
   return await apiCall<Place>('/api/admin/place', {
     method: 'POST',
-    body: JSON.stringify({
-      ...placeData,
-      password, // Assuming password is required as per convention
-    }),
+    body: JSON.stringify(placeData),
   });
 }; 

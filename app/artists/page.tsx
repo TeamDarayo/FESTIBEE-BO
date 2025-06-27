@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Artist, fetchArtists, deleteArtist, createArtist, updateArtist } from '@/lib/api';
+import { Artist, fetchArtists, deleteArtist, createArtist, updateArtist, addArtistAliases, deleteArtistAlias, ArtistAlias } from '@/lib/api';
 import ArtistForm from './components/ArtistForm';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from '@/components/ui/table';
@@ -69,7 +69,37 @@ export default function ArtistsPage() {
           break;
         case 'update':
           if (pendingAction.id) {
+            // 아티스트 기본 정보 업데이트
             await updateArtist(pendingAction.id, pendingAction.data, password);
+            
+            // 별칭 변경사항 처리
+            const originalArtist = artists.find(a => a.id === pendingAction.id);
+            if (originalArtist) {
+              const newAliases = pendingAction.data.aliases || [];
+              const originalAliases = originalArtist.aliases || [];
+              
+              // 삭제된 별칭들 찾기
+              const deletedAliases = originalAliases.filter((origAlias: ArtistAlias) => 
+                !newAliases.some((newAlias: ArtistAlias) => newAlias.name === origAlias.name)
+              );
+              
+              // 삭제된 별칭이 있으면 삭제
+              for (const deletedAlias of deletedAliases) {
+                await deleteArtistAlias(deletedAlias.id);
+              }
+              
+              // 새로 추가된 별칭들 찾기
+              const addedAliases = newAliases.filter((newAlias: ArtistAlias) => 
+                !originalAliases.some((origAlias: ArtistAlias) => origAlias.name === newAlias.name)
+              );
+              
+              // 새 별칭이 있으면 추가
+              if (addedAliases.length > 0) {
+                const aliasNames = addedAliases.map((alias: ArtistAlias) => alias.name);
+                await addArtistAliases(pendingAction.id, aliasNames, password);
+              }
+            }
+            
             alert('아티스트가 성공적으로 수정되었습니다.');
           }
           break;
@@ -87,11 +117,23 @@ export default function ArtistsPage() {
     } catch (error: any) {
       // 서버 에러 응답을 alert로 표시
       let errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
-      if (error.message && error.message.includes('401')) {
+      console.error('Full API Error:', error);
+      console.error('Error message:', error.message);
+      console.error('Error status:', error.status);
+      
+      // 401 에러 감지 (다양한 형태의 401 에러 메시지 처리)
+      if (error.message && (
+        error.message.includes('401') || 
+        error.message.includes('Unauthorized') ||
+        error.message.includes('비밀번호') ||
+        error.message.includes('password')
+      )) {
         errorMessage = '비밀번호를 확인해주세요.';
+        alert(`오류: ${errorMessage}`);
+        // 401 에러일 때는 모달을 닫지 않음
+        return;
       }
       alert(`오류: ${errorMessage}`);
-      console.error('API Error:', error);
     } finally {
       setIsPasswordModalOpen(false);
       setPendingAction(null);

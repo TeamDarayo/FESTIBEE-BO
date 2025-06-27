@@ -99,4 +99,52 @@ export interface FestivalResponse {
   timeTables: TimeTableResponse[];
   reservationInfos: ReservationInfoResponse[];
   artists: ArtistSummaryResponse[];
+}
+
+// --- API Request types (for POST /api/admin/performance) ---
+
+export interface PerformanceRequest {
+  name: string;
+  placeId: number;
+  startDate: string;
+  endDate: string;
+  posterUrl: string;
+  banGoods: string;
+  transportationInfo: string;
+  remark: string;
+}
+
+export interface TimeTableArtistRequest {
+  artistId: number;
+  type: string;
+}
+
+export interface TimeTableRequest {
+  performanceDate: string;
+  startTime: string;
+  endTime: string;
+  hallId: number;
+  artists: TimeTableArtistRequest[];
+}
+
+export interface ReservationInfoRequest {
+  openDateTime: string;
+  closeDateTime: string;
+  type: string;
+  ticketURL: string;
+  remark: string;
+}
+
+export interface FestivalCreateRequest {
+  password: string;
+  performance: PerformanceRequest;
+  timeTables: TimeTableRequest[];
+  reservationInfos: ReservationInfoRequest[];
+}
+
+export interface TimeTableAddRequest {
+  performanceDate: string;
+  startTime: string;
+  endTime: string;
+  hallId: number;
 } 

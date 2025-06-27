@@ -66,6 +66,21 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
     }
   }, [initialData, isOpen]);
 
+  // 장소 목록이 로드된 후 placeId 설정
+  useEffect(() => {
+    if (places.length > 0 && initialData?.placeName && !formData.placeId) {
+      const matchingPlace = places.find(p => p.placeName === initialData.placeName);
+      if (matchingPlace) {
+        setFormData(prev => ({
+          ...prev,
+          placeId: matchingPlace.id,
+          placeName: matchingPlace.placeName,
+          placeAddress: matchingPlace.address,
+        }));
+      }
+    }
+  }, [places, initialData, formData.placeId]);
+
   const loadPlaces = async () => {
     setIsLoadingPlaces(true);
     try {
@@ -79,9 +94,8 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
     }
   };
 
-  const handlePlaceSelect = (placeIdStr: string) => {
-    const placeId = parseInt(placeIdStr, 10);
-    const selectedPlace = places.find(p => p.id === placeId);
+  const handlePlaceSelect = (placeName: string) => {
+    const selectedPlace = places.find(p => p.placeName === placeName);
     if (selectedPlace) {
       setFormData(prev => ({
         ...prev,
@@ -102,7 +116,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
   const handlePasswordConfirmForPlace = async (password: string) => {
     if (!pendingPlaceData) return;
     try {
-      await createPlace(pendingPlaceData, password);
+      await createPlace(pendingPlaceData);
       alert('장소가 성공적으로 추가되었습니다.');
       setIsPlaceFormOpen(false);
       await loadPlaces();
@@ -114,7 +128,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
     }
   };
 
-  const selectedPlace = places.find(p => p.id === formData.placeId);
+  const selectedPlace = places.find(p => p.placeName === formData.placeName);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,6 +145,17 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
       alert('타임테이블의 날짜와 시간을 모두 입력해주세요.');
       return;
     }
+    
+    if (!newTimeTable.hallId || newTimeTable.hallId === 0) {
+      alert('홀을 선택해주세요.');
+      return;
+    }
+
+    // 디버깅 정보 출력
+    console.log('Selected place:', selectedPlace);
+    console.log('Selected place ID:', selectedPlace?.id);
+    console.log('Selected hall ID:', newTimeTable.hallId);
+    console.log('Available halls:', selectedPlace?.halls);
 
     setFormData(prev => ({
       ...prev,
@@ -231,7 +256,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
             <div className="space-y-2">
               <Label htmlFor="place">장소</Label>
               <div className="flex gap-2">
-                <Select onValueChange={handlePlaceSelect} value={formData.placeId?.toString()}>
+                <Select onValueChange={handlePlaceSelect} value={formData.placeName || ''}>
                   <SelectTrigger>
                     <SelectValue placeholder="장소를 선택하세요" />
                   </SelectTrigger>
@@ -239,7 +264,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
                     {isLoadingPlaces ? (
                       <SelectItem value="loading" disabled>불러오는 중...</SelectItem>
                     ) : (
-                      places.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.placeName}</SelectItem>)
+                      places.map(p => <SelectItem key={p.id} value={p.placeName}>{p.placeName}</SelectItem>)
                     )}
                   </SelectContent>
                 </Select>
@@ -295,7 +320,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
                     <SelectValue placeholder="홀 선택" />
                   </SelectTrigger>
                   <SelectContent>
-                    {selectedPlace?.halls.map(h => <SelectItem key={h.id} value={h.id.toString()}>{h.name}</SelectItem>)}
+                    {selectedPlace?.halls.map(h => <SelectItem key={h.id} value={h.id.toString()}>{h.name} (ID: {h.id})</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
