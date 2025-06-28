@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Festival } from '@/types/festival';
-import { fetchFestivals, createFestival, updateFestival, deleteFestival } from '@/lib/api';
+import { fetchFestivals, createFestival, updateFestival, deleteFestival, updateReservationInfos } from '@/lib/api';
 import { format } from 'date-fns';
 import FestivalForm from './components/FestivalForm';
 import Image from 'next/image';
@@ -26,7 +26,7 @@ export default function FestivalsPage() {
   // 비밀번호 모달 상태
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{
-    type: 'create' | 'update' | 'delete';
+    type: 'create' | 'update' | 'delete' | 'updateReservation';
     data?: any;
     id?: number;
   } | null>(null);
@@ -66,7 +66,7 @@ export default function FestivalsPage() {
 
   const handlePasswordConfirm = async (password: string) => {
     if (!pendingAction) return;
-
+    
     try {
       switch (pendingAction.type) {
         case 'create':
@@ -83,6 +83,12 @@ export default function FestivalsPage() {
           if (pendingAction.id) {
             await deleteFestival(pendingAction.id, password);
             alert('페스티벌이 성공적으로 삭제되었습니다.');
+          }
+          break;
+        case 'updateReservation':
+          if (pendingAction.id) {
+            await updateReservationInfos(pendingAction.id, pendingAction.data, password);
+            alert('예매정보가 성공적으로 추가되었습니다.');
           }
           break;
       }
@@ -119,12 +125,54 @@ export default function FestivalsPage() {
     setEditingFestival(null);
   };
 
+  const handleAddReservation = (festivalId: number) => {
+    // 예매정보 추가는 인라인 폼에서 처리하므로 아무것도 하지 않음
+    // ReservationInfo 컴포넌트 내부에서 처리됨
+  };
+
+  const handleEditReservation = (festivalId: number) => {
+    // 예매정보 수정 로직 - 상세보기 모달을 열고 예매정보 수정 모드로 설정
+    const festival = festivals.find(f => f.id === festivalId);
+    if (festival) {
+      setEditingFestival(festival);
+      setIsFormOpen(true);
+      // TODO: 예매정보 수정 모드로 설정하는 로직 추가 필요
+    }
+  };
+
+  const handleSaveNewReservation = async (festivalId: number, newReservation: any) => {
+    try {
+      // 현재 페스티벌의 예매정보 목록을 가져옴
+      const currentFestival = festivals.find(f => f.id === festivalId);
+      if (!currentFestival) {
+        throw new Error('페스티벌을 찾을 수 없습니다.');
+      }
+
+      // 새로운 예매정보를 기존 목록에 추가 (id는 서버에서 생성됨)
+      const updatedReservationInfos = [
+        ...currentFestival.reservationInfos,
+        newReservation
+      ];
+
+      // 비밀번호 모달을 열기 위해 pendingAction 설정
+      setPendingAction({
+        type: 'updateReservation',
+        id: festivalId,
+        data: updatedReservationInfos,
+      });
+      setIsPasswordModalOpen(true);
+    } catch (error: any) {
+      alert(`예매정보 추가 오류: ${error.message}`);
+    }
+  };
+
   const getPasswordModalTitle = () => {
     if (!pendingAction) return '';
     switch (pendingAction.type) {
       case 'create': return '페스티벌 추가';
       case 'update': return '페스티벌 수정';
       case 'delete': return '페스티벌 삭제';
+      case 'updateReservation': return '예매정보 추가';
       default: return '관리자 인증';
     }
   };
@@ -135,6 +183,7 @@ export default function FestivalsPage() {
       case 'create': return '새 페스티벌을 추가하기 위해 관리자 비밀번호를 입력해주세요.';
       case 'update': return '페스티벌을 수정하기 위해 관리자 비밀번호를 입력해주세요.';
       case 'delete': return '페스티벌을 삭제하기 위해 관리자 비밀번호를 입력해주세요.';
+      case 'updateReservation': return '예매정보를 추가하기 위해 관리자 비밀번호를 입력해주세요.';
       default: return '관리자 비밀번호를 입력해주세요.';
     }
   };
@@ -219,7 +268,7 @@ export default function FestivalsPage() {
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => handleEdit(festival)}>
                           <FiEdit2 className="mr-1" />
-                          수정
+                          상세보기
                         </Button>
                         <Button 
                           size="sm" 
@@ -242,7 +291,12 @@ export default function FestivalsPage() {
                     {openReservation === festival.id && (
                       <TableRow>
                         <TableCell colSpan={8} className="p-4 bg-muted">
-                          <ReservationInfo reservationInfos={festival.reservationInfos} />
+                          <ReservationInfo 
+                            reservationInfos={festival.reservationInfos}
+                            onEditReservation={() => handleEditReservation(festival.id)}
+                            onSaveNewReservation={(newReservation) => handleSaveNewReservation(festival.id, newReservation)}
+                            showManageButtons={true}
+                          />
                         </TableCell>
                       </TableRow>
                     )}
@@ -259,6 +313,7 @@ export default function FestivalsPage() {
         onSubmit={editingFestival ? handleUpdateFestival : handleCreateFestival}
         onCancel={handleCloseForm}
         initialData={editingFestival || undefined}
+        isReadOnly={editingFestival ? true : false}
       />
 
       <PasswordModal

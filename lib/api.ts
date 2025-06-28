@@ -296,6 +296,23 @@ export const deleteFestival = async (id: number): Promise<void> => {
   });
 };
 
+export const updateReservationInfos = async (performanceId: number, reservationInfos: ReservationInfo[], password: string): Promise<void> => {
+  // 서버의 List<EditReservationInfoReq> 구조에 맞게 변환
+  const reservationInfosForServer = reservationInfos.map(ri => ({
+    id: ri.id || null, // id가 없으면 null로 전송
+    openDateTime: ri.openDateTime,
+    closeDateTime: ri.closeDateTime,
+    type: ri.type,
+    ticketURL: ri.ticketURL,
+    remark: ri.remark || null,
+  }));
+
+  return await apiCall(`/api/admin/performance/${performanceId}/reservation`, {
+    method: 'PUT',
+    body: JSON.stringify(reservationInfosForServer), // password 없이 배열만 전송
+  });
+};
+
 // API 구현 - 장소
 export const fetchPlaces = async (): Promise<Place[]> => {
   return await apiCall<Place[]>('/api/admin/place');

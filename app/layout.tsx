@@ -7,8 +7,8 @@ import { FiCalendar, FiUsers } from 'react-icons/fi';
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'DalS2bo Admin',
-  description: 'Admin dashboard for DalS2bo',
+  title: 'Festibee Admin',
+  description: 'Admin dashboard for Festibee',
 }
 
 export default function RootLayout({
@@ -22,7 +22,7 @@ export default function RootLayout({
         <div className="min-h-screen flex">
           {/* Sidebar */}
           <aside className="w-60 bg-white border-r border-gray-200 flex flex-col py-8 px-4 shadow-sm">
-            <div className="mb-10 text-2xl font-bold text-blue-600 tracking-tight">DalS2bo Admin</div>
+            <div className="mb-10 text-2xl font-bold text-blue-600 tracking-tight">Festibee Admin</div>
             <nav className="flex flex-col gap-2">
               <Link href="/festivals" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition font-medium">
                 <FiCalendar className="text-xl" />

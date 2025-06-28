@@ -16,6 +16,7 @@ interface FestivalFormProps {
   onCancel: () => void;
   initialData?: Festival;
   isOpen: boolean;
+  isReadOnly?: boolean;
 }
 
 const getInitialFormData = (initialData?: Festival): Omit<Festival, 'id'> => ({
@@ -34,7 +35,7 @@ const getInitialFormData = (initialData?: Festival): Omit<Festival, 'id'> => ({
   urlInfos: initialData?.urlInfos || [],
 });
 
-export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }: FestivalFormProps) {
+export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, isReadOnly }: FestivalFormProps) {
   const [formData, setFormData] = useState<Omit<Festival, 'id'>>(() => getInitialFormData(initialData));
   const [places, setPlaces] = useState<Place[]>([]);
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
@@ -68,6 +69,17 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
     url: '',
     type: URLType.HOMEPAGE,
   });
+
+  const [editingReservationIndex, setEditingReservationIndex] = useState<number | null>(null);
+  const [editReservationInfo, setEditReservationInfo] = useState<ReservationInfo>({
+    openDateTime: '',
+    closeDateTime: '',
+    ticketURL: '',
+    type: '',
+    remark: '',
+  });
+  const [showAddReservationForm, setShowAddReservationForm] = useState(false);
+  const [showReservationSection, setShowReservationSection] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -278,7 +290,6 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
     }));
   };
 
-
   const handleAddReservationInfo = () => {
     if (!newReservationInfo.openDateTime || !newReservationInfo.closeDateTime || !newReservationInfo.ticketURL || !newReservationInfo.type) {
       alert('예매 정보의 모든 필수 필드를 입력해주세요.');
@@ -287,7 +298,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
 
     setFormData(prev => ({
       ...prev,
-      reservationInfos: [...prev.reservationInfos, { ...newReservationInfo, id: Date.now().toString() }],
+      reservationInfos: [...prev.reservationInfos, { ...newReservationInfo, id: Date.now() }],
     }));
 
     setNewReservationInfo({
@@ -330,6 +341,29 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
     }));
   };
 
+  const handleEditReservationInfo = (index: number) => {
+    const reservation = formData.reservationInfos[index];
+    setEditingReservationIndex(index);
+    setEditReservationInfo(reservation);
+  };
+
+  const handleSaveEditReservationInfo = (index: number) => {
+    if (editingReservationIndex !== null) {
+      const updatedReservationInfos = formData.reservationInfos.map((ri, i) =>
+        i === editingReservationIndex ? editReservationInfo : ri
+      );
+      setFormData(prev => ({
+        ...prev,
+        reservationInfos: updatedReservationInfos,
+      }));
+      setEditingReservationIndex(null);
+    }
+  };
+
+  const handleCancelEditReservationInfo = () => {
+    setEditingReservationIndex(null);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -338,7 +372,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 z-10">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold text-gray-900">
-              {initialData ? '페스티벌 수정' : '새 페스티벌 추가'}
+              {isReadOnly ? '페스티벌 상세보기' : (initialData ? '페스티벌 수정' : '새 페스티벌 추가')}
             </h2>
             <Button variant="ghost" size="sm" onClick={onCancel}>✕</Button>
           </div>
@@ -348,12 +382,12 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="name">이름</Label>
-              <Input id="name" required value={formData.name} onChange={handleInputChange} />
+              <Input id="name" required value={formData.name} onChange={handleInputChange} disabled={isReadOnly} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="place">장소</Label>
               <div className="flex gap-2">
-                <Select onValueChange={handlePlaceSelect} value={formData.placeName || ''}>
+                <Select onValueChange={handlePlaceSelect} value={formData.placeName || ''} disabled={isReadOnly}>
                   <SelectTrigger>
                     <SelectValue placeholder="장소를 선택하세요" />
                   </SelectTrigger>
@@ -365,33 +399,35 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
                     )}
                   </SelectContent>
                 </Select>
-                <Button type="button" variant="outline" onClick={() => setIsPlaceFormOpen(true)}>새 장소 추가</Button>
+                {!isReadOnly && (
+                  <Button type="button" variant="outline" onClick={() => setIsPlaceFormOpen(true)}>새 장소 추가</Button>
+                )}
               </div>
               {selectedPlace && <p className="text-sm text-gray-500 mt-1">{selectedPlace.address}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="startDate">시작일</Label>
-              <Input id="startDate" type="date" required value={formData.startDate} onChange={handleInputChange} />
+              <Input id="startDate" type="date" required value={formData.startDate} onChange={handleInputChange} disabled={isReadOnly} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="endDate">종료일</Label>
-              <Input id="endDate" type="date" required value={formData.endDate} onChange={handleInputChange} />
+              <Input id="endDate" type="date" required value={formData.endDate} onChange={handleInputChange} disabled={isReadOnly} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="posterUrl">포스터 URL</Label>
-              <Input id="posterUrl" type="url" required value={formData.posterUrl} onChange={handleInputChange} />
+              <Input id="posterUrl" type="url" required value={formData.posterUrl} onChange={handleInputChange} disabled={isReadOnly} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="banGoods">금지 물품</Label>
-              <Input id="banGoods" value={formData.banGoods} onChange={handleInputChange} />
+              <Input id="banGoods" value={formData.banGoods} onChange={handleInputChange} disabled={isReadOnly} />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="transportationInfo">교통 정보</Label>
-              <Textarea id="transportationInfo" value={formData.transportationInfo} onChange={handleInputChange} />
+              <Textarea id="transportationInfo" value={formData.transportationInfo} onChange={handleInputChange} disabled={isReadOnly} />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="remark">비고</Label>
-              <Textarea id="remark" value={formData.remark} onChange={handleInputChange} />
+              <Textarea id="remark" value={formData.remark} onChange={handleInputChange} disabled={isReadOnly} />
             </div>
           </div>
           
@@ -401,95 +437,183 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
               <h3 className="text-lg font-medium">URL 정보</h3>
               <span className="text-xs text-gray-500">(인스타그램 등)</span>
             </div>
-            {formData.urlInfos.map((urlInfo, index) => (
-              <div key={index} className="p-4 border rounded-lg space-y-2">
-                <p>타입: {urlInfo.type}</p>
-                <p>URL: {urlInfo.url}</p>
+            {formData.urlInfos.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                등록된 URL이 없습니다.
               </div>
-            ))}
-            <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
-              <h4 className="font-medium">새 URL 추가</h4>
+            ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select onValueChange={(type) => setNewUrlInfo(p => ({...p, type: type as URLType}))} value={newUrlInfo.type}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="URL 타입 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={URLType.HOMEPAGE}>홈페이지</SelectItem>
-                    <SelectItem value={URLType.INSTAGRAM}>인스타그램</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input type="url" placeholder="URL 입력" value={newUrlInfo.url} onChange={e => setNewUrlInfo(p => ({...p, url: e.target.value}))} />
+                {formData.urlInfos.map((urlInfo, index) => (
+                  <div key={index} className="p-4 border rounded-lg bg-white hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        urlInfo.type === URLType.INSTAGRAM 
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500' 
+                          : 'bg-gradient-to-r from-blue-500 to-blue-600'
+                      }`}>
+                        {urlInfo.type === URLType.INSTAGRAM ? (
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                          </svg>
+                        )}
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-900">
+                          {urlInfo.type === URLType.INSTAGRAM ? '인스타그램' : '홈페이지'}
+                        </span>
+                      </div>
+                    </div>
+                    <a 
+                      href={urlInfo.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 hover:underline break-all text-sm"
+                    >
+                      {urlInfo.url}
+                    </a>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center gap-2 mt-2">
-                <Button type="button" onClick={handleAddUrlInfo}>URL 추가</Button>
-                <span className="text-xs text-gray-500">URL 추가 버튼을 누른 후 저장해주세요</span>
+            )}
+            {!isReadOnly && (
+              <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
+                <h4 className="font-medium">새 URL 추가</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Select onValueChange={(type) => setNewUrlInfo(p => ({...p, type: type as URLType}))} value={newUrlInfo.type}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="URL 타입 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={URLType.HOMEPAGE}>홈페이지</SelectItem>
+                      <SelectItem value={URLType.INSTAGRAM}>인스타그램</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input type="url" placeholder="URL 입력" value={newUrlInfo.url} onChange={e => setNewUrlInfo(p => ({...p, url: e.target.value}))} />
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <Button type="button" onClick={handleAddUrlInfo}>URL 추가</Button>
+                  <span className="text-xs text-gray-500">URL 추가 버튼을 누른 후 저장해주세요</span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
           
           {/* TimeTables Section - 수정 시에만 표시 */}
           {initialData && (
             <div className="border-t pt-6 space-y-4">
               <h3 className="text-lg font-medium">타임테이블 관리</h3>
-              {formData.timeTables.map((tt, index) => (
-                <div key={tt.id || index} className="p-4 border rounded-lg space-y-2">
-                  <p>일시: {tt.performanceDate} {tt.startTime}~{tt.endTime}</p>
-                  <p>홀: {tt.hallName || `ID: ${tt.hallId}`}</p>
-                  <p>아티스트: {tt.artists.map(a => `ID ${a.artistId} (${a.type})`).join(', ')}</p>
+              {formData.timeTables.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                  등록된 타임테이블이 없습니다.
                 </div>
-              ))}
-              <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
-                <h4 className="font-medium">새 타임테이블 추가</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Input type="date" value={newTimeTable.performanceDate} onChange={e => setNewTimeTable(p => ({...p, performanceDate: e.target.value}))} />
-                  <Input placeholder="시작시간 (HH:mm)" value={newTimeTable.startTime} onChange={e => setNewTimeTable(p => ({...p, startTime: e.target.value}))} />
-                  <Input placeholder="종료시간 (HH:mm)" value={newTimeTable.endTime} onChange={e => setNewTimeTable(p => ({...p, endTime: e.target.value}))} />
-                  <Select onValueChange={(hallId) => setNewTimeTable(p => ({...p, hallId: parseInt(hallId, 10)}))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="홀 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectedPlace?.halls.map(h => <SelectItem key={h.id} value={h.id.toString()}>{h.name} (ID: {h.id})</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+              ) : (
+                <>
+                  {formData.timeTables.map((tt, index) => (
+                    <div key={tt.id || index} className="p-4 border rounded-lg space-y-2">
+                      <p>일시: {tt.performanceDate} {tt.startTime}~{tt.endTime}</p>
+                      <p>홀: {tt.hallName || `ID: ${tt.hallId}`}</p>
+                      <p>아티스트: {tt.artists.map(a => `ID ${a.artistId} (${a.type})`).join(', ')}</p>
+                    </div>
+                  ))}
+                </>
+              )}
+              {!isReadOnly && (
+                <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
+                  <h4 className="font-medium">새 타임테이블 추가</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Input type="date" value={newTimeTable.performanceDate} onChange={e => setNewTimeTable(p => ({...p, performanceDate: e.target.value}))} />
+                    <Input placeholder="시작시간 (HH:mm)" value={newTimeTable.startTime} onChange={e => setNewTimeTable(p => ({...p, startTime: e.target.value}))} />
+                    <Input placeholder="종료시간 (HH:mm)" value={newTimeTable.endTime} onChange={e => setNewTimeTable(p => ({...p, endTime: e.target.value}))} />
+                    <Select onValueChange={(hallId) => setNewTimeTable(p => ({...p, hallId: parseInt(hallId, 10)}))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="홀 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedPlace?.halls.map(h => <SelectItem key={h.id} value={h.id.toString()}>{h.name} (ID: {h.id})</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button type="button" onClick={handleAddTimeTable}>타임테이블 추가</Button>
                 </div>
-                <Button type="button" onClick={handleAddTimeTable}>타임테이블 추가</Button>
-              </div>
+              )}
             </div>
           )}
 
           {/* ReservationInfos Section - 수정 시에만 표시 */}
           {initialData && (
             <div className="border-t pt-6 space-y-4">
-              <h3 className="text-lg font-medium">예매 정보 관리</h3>
-              {formData.reservationInfos.map((ri, index) => (
-                <div key={ri.id || index} className="p-4 border rounded-lg space-y-2">
-                  <p>오픈: {ri.openDateTime}</p>
-                  <p>마감: {ri.closeDateTime}</p>
-                  <p>종류: {ri.type}</p>
-                  <p>URL: {ri.ticketURL}</p>
-                  <Button type="button" variant="outline" size="sm" onClick={() => handleRemoveReservationInfo(ri.id!)}>예매 정보 삭제</Button>
+              <h3 className="text-lg font-medium">예매 정보</h3>
+              {formData.reservationInfos.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                  등록된 예매 정보가 없습니다.
                 </div>
-              ))}
-              <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
-                <h4 className="font-medium">새 예매 정보 추가</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input type="datetime-local" placeholder="오픈 일시" value={newReservationInfo.openDateTime} onChange={e => setNewReservationInfo(p => ({...p, openDateTime: e.target.value}))} />
-                  <Input type="datetime-local" placeholder="마감 일시" value={newReservationInfo.closeDateTime} onChange={e => setNewReservationInfo(p => ({...p, closeDateTime: e.target.value}))} />
-                  <Input placeholder="예매 종류" value={newReservationInfo.type} onChange={e => setNewReservationInfo(p => ({...p, type: e.target.value}))} />
-                  <Input type="url" placeholder="예매처 URL" value={newReservationInfo.ticketURL} onChange={e => setNewReservationInfo(p => ({...p, ticketURL: e.target.value}))} />
-                  <Textarea placeholder="비고" value={newReservationInfo.remark} onChange={e => setNewReservationInfo(p => ({...p, remark: e.target.value}))} className="md:col-span-2" />
+              ) : (
+                <div className="space-y-2">
+                  {formData.reservationInfos.map((ri, index) => (
+                    <div key={ri.id || index} className="p-4 border rounded-lg space-y-2">
+                      {editingReservationIndex === index ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Input type="datetime-local" value={editReservationInfo.openDateTime} onChange={e => setEditReservationInfo(p => ({...p, openDateTime: e.target.value}))} />
+                          <Input type="datetime-local" value={editReservationInfo.closeDateTime} onChange={e => setEditReservationInfo(p => ({...p, closeDateTime: e.target.value}))} />
+                          <Input placeholder="예매 종류" value={editReservationInfo.type} onChange={e => setEditReservationInfo(p => ({...p, type: e.target.value}))} />
+                          <Input type="url" placeholder="예매처 URL" value={editReservationInfo.ticketURL} onChange={e => setEditReservationInfo(p => ({...p, ticketURL: e.target.value}))} />
+                          <Textarea placeholder="비고" value={editReservationInfo.remark} onChange={e => setEditReservationInfo(p => ({...p, remark: e.target.value}))} className="md:col-span-2" />
+                          <div className="col-span-2 flex gap-2 mt-2">
+                            <Button type="button" onClick={() => handleSaveEditReservationInfo(index)}>저장</Button>
+                            <Button type="button" variant="outline" onClick={handleCancelEditReservationInfo}>취소</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p>오픈: {ri.openDateTime}</p>
+                          <p>마감: {ri.closeDateTime}</p>
+                          <p>종류: {ri.type}</p>
+                          <p>URL: {ri.ticketURL}</p>
+                          <p>비고: {ri.remark}</p>
+                          {!isReadOnly && (
+                            <Button type="button" variant="outline" size="sm" onClick={() => handleEditReservationInfo(index)}>수정</Button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <Button type="button" onClick={handleAddReservationInfo}>예매 정보 추가</Button>
-              </div>
+              )}
+              {!isReadOnly && (
+                <>
+                  {showAddReservationForm ? (
+                    <div className="p-4 border rounded-lg space-y-4 bg-gray-50 mt-4">
+                      <h4 className="font-medium">새 예매 정보 추가</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input type="datetime-local" placeholder="오픈 일시" value={newReservationInfo.openDateTime} onChange={e => setNewReservationInfo(p => ({...p, openDateTime: e.target.value}))} />
+                        <Input type="datetime-local" placeholder="마감 일시" value={newReservationInfo.closeDateTime} onChange={e => setNewReservationInfo(p => ({...p, closeDateTime: e.target.value}))} />
+                        <Input placeholder="예매 종류" value={newReservationInfo.type} onChange={e => setNewReservationInfo(p => ({...p, type: e.target.value}))} />
+                        <Input type="url" placeholder="예매처 URL" value={newReservationInfo.ticketURL} onChange={e => setNewReservationInfo(p => ({...p, ticketURL: e.target.value}))} />
+                        <Textarea placeholder="비고" value={newReservationInfo.remark} onChange={e => setNewReservationInfo(p => ({...p, remark: e.target.value}))} className="md:col-span-2" />
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <Button type="button" onClick={handleAddReservationInfo}>추가</Button>
+                        <Button type="button" variant="outline" onClick={() => setShowAddReservationForm(false)}>취소</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button type="button" className="mt-4" onClick={() => setShowAddReservationForm(true)}>예매 정보 추가</Button>
+                  )}
+                </>
+              )}
             </div>
           )}
 
-          <div className="flex justify-end space-x-3 pt-6 border-t">
-            <Button type="button" variant="outline" onClick={onCancel}>취소</Button>
-            <Button type="submit">저장</Button>
-          </div>
+          {!isReadOnly && (
+            <div className="flex justify-end space-x-3 pt-6 border-t">
+              <Button type="button" variant="outline" onClick={onCancel}>취소</Button>
+              <Button type="submit">저장</Button>
+            </div>
+          )}
         </form>
       </div>
       <PlaceForm 
