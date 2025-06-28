@@ -1,5 +1,15 @@
 // --- Frontend-facing types ---
 
+export enum URLType {
+  INSTAGRAM = 'INSTAGRAM',
+  HOMEPAGE = 'HOMEPAGE'
+}
+
+export interface PerformanceURL {
+  url: string;
+  type: URLType;
+}
+
 export interface TimeTableArtist {
   timetableArtistId?: number; // From GET response
   artistId: number;
@@ -45,6 +55,7 @@ export interface Festival {
   remark: string;
   timeTables: TimeTable[];
   reservationInfos: ReservationInfo[];
+  urlInfos: PerformanceURL[];
   artists?: ArtistSummary[]; // From GET response
 }
 
@@ -62,6 +73,7 @@ export interface PerformanceResponse {
   banGoods: string;
   transportationInfo: string;
   remark: string;
+  urlInfos: PerformanceURL[];
 }
 
 export interface TimeTableArtistResponse {
@@ -112,6 +124,7 @@ export interface PerformanceRequest {
   banGoods: string;
   transportationInfo: string;
   remark: string;
+  urlInfos: PerformanceURL[];
 }
 
 export interface TimeTableArtistRequest {

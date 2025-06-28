@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Festival, TimeTable, ReservationInfo, TimeTableArtist } from '@/types/festival';
+import { Festival, TimeTable, TimeTableArtist, ReservationInfo, PerformanceURL, URLType } from '@/types/festival';
 import { Place, PlaceRequestBody } from '@/types/place';
 import { fetchPlaces, createPlace, addTimeTable } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ const getInitialFormData = (initialData?: Festival): Omit<Festival, 'id'> => ({
   remark: initialData?.remark || '',
   timeTables: initialData?.timeTables || [],
   reservationInfos: initialData?.reservationInfos || [],
+  urlInfos: initialData?.urlInfos || [],
 });
 
 export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }: FestivalFormProps) {
@@ -61,6 +62,11 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
     ticketURL: '',
     type: '',
     remark: '',
+  });
+
+  const [newUrlInfo, setNewUrlInfo] = useState<PerformanceURL>({
+    url: '',
+    type: URLType.HOMEPAGE,
   });
 
   useEffect(() => {
@@ -300,6 +306,30 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
     }));
   };
 
+  const handleAddUrlInfo = () => {
+    if (!newUrlInfo.url) {
+      alert('URL을 입력해주세요.');
+      return;
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      urlInfos: [...prev.urlInfos, { ...newUrlInfo }],
+    }));
+
+    setNewUrlInfo({
+      url: '',
+      type: URLType.HOMEPAGE,
+    });
+  };
+
+  const handleRemoveUrlInfo = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      urlInfos: prev.urlInfos.filter((_, i) => i !== index),
+    }));
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -362,6 +392,34 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="remark">비고</Label>
               <Textarea id="remark" value={formData.remark} onChange={handleInputChange} />
+            </div>
+          </div>
+          
+          {/* URL Infos Section */}
+          <div className="border-t pt-6 space-y-4">
+            <h3 className="text-lg font-medium">URL 정보</h3>
+            {formData.urlInfos.map((urlInfo, index) => (
+              <div key={index} className="p-4 border rounded-lg space-y-2">
+                <p>타입: {urlInfo.type}</p>
+                <p>URL: {urlInfo.url}</p>
+                <Button type="button" variant="outline" size="sm" onClick={() => handleRemoveUrlInfo(index)}>URL 삭제</Button>
+              </div>
+            ))}
+            <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
+              <h4 className="font-medium">새 URL 추가</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select onValueChange={(type) => setNewUrlInfo(p => ({...p, type: type as URLType}))} value={newUrlInfo.type}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="URL 타입 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={URLType.HOMEPAGE}>홈페이지</SelectItem>
+                    <SelectItem value={URLType.INSTAGRAM}>인스타그램</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input type="url" placeholder="URL 입력" value={newUrlInfo.url} onChange={e => setNewUrlInfo(p => ({...p, url: e.target.value}))} />
+              </div>
+              <Button type="button" onClick={handleAddUrlInfo}>URL 추가</Button>
             </div>
           </div>
           
