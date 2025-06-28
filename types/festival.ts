@@ -73,7 +73,6 @@ export interface PerformanceResponse {
   banGoods: string;
   transportationInfo: string;
   remark: string;
-  urlInfos: PerformanceURL[];
 }
 
 export interface TimeTableArtistResponse {
@@ -111,6 +110,7 @@ export interface FestivalResponse {
   timeTables: TimeTableResponse[];
   reservationInfos: ReservationInfoResponse[];
   artists: ArtistSummaryResponse[];
+  urlInfos: PerformanceURL[];
 }
 
 // --- API Request types (for POST /api/admin/performance) ---
@@ -124,7 +124,6 @@ export interface PerformanceRequest {
   banGoods: string;
   transportationInfo: string;
   remark: string;
-  urlInfos: PerformanceURL[];
 }
 
 export interface TimeTableArtistRequest {
@@ -153,6 +152,7 @@ export interface FestivalCreateRequest {
   performance: PerformanceRequest;
   timeTables: TimeTableRequest[];
   reservationInfos: ReservationInfoRequest[];
+  urlInfos: PerformanceURL[];
 }
 
 export interface TimeTableAddRequest {

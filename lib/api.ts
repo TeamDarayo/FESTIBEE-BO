@@ -144,7 +144,7 @@ export const deleteArtistAlias = async (aliasId: number): Promise<void> => {
 
 // Helper to transform the nested API response to our flat frontend Festival type
 const transformFestivalResponse = (res: FestivalResponse): Festival => {
-  const { performance, timeTables, reservationInfos, artists } = res;
+  const { performance, timeTables, reservationInfos, artists, urlInfos } = res;
   return {
     id: performance.id,
     name: performance.name,
@@ -156,7 +156,7 @@ const transformFestivalResponse = (res: FestivalResponse): Festival => {
     banGoods: performance.banGoods,
     transportationInfo: performance.transportationInfo,
     remark: performance.remark,
-    urlInfos: performance.urlInfos || [],
+    urlInfos: urlInfos || [],
     timeTables: timeTables.map(tt => ({
       id: tt.id,
       performanceDate: tt.performanceDate,
@@ -209,7 +209,11 @@ function convertToRequestFormat(festivalData: any, password: string): FestivalCr
   // 새 페스티벌 생성 시에는 타임테이블과 예매정보를 제외
   const isNewFestival = !id;
 
-  return {
+  // 디버깅 로그
+  console.log('convertToRequestFormat - input urlInfos:', urlInfos);
+  console.log('convertToRequestFormat - festivalData:', festivalData);
+
+  const result = {
     password,
     performance: {
       ...(id ? { id } : {}), // id가 있으면 포함
@@ -221,7 +225,6 @@ function convertToRequestFormat(festivalData: any, password: string): FestivalCr
       banGoods: performanceInfo.banGoods,
       transportationInfo: performanceInfo.transportationInfo,
       remark: performanceInfo.remark,
-      urlInfos: isNewFestival ? urlInfos : [],
     },
     timeTables: isNewFestival ? [] : timeTables.map((tt: any): TimeTableRequest => ({
       performanceDate: tt.performanceDate,
@@ -240,16 +243,19 @@ function convertToRequestFormat(festivalData: any, password: string): FestivalCr
       ticketURL: ri.ticketURL,
       remark: ri.remark,
     })),
+    urlInfos: urlInfos || [], // null 방지
   };
+
+  console.log('convertToRequestFormat - result urlInfos:', result.urlInfos);
+  return result;
 }
 
-export const createFestival = async (festival: Omit<Festival, 'id'>, password: string): Promise<Festival> => {
+export const createFestival = async (festival: Omit<Festival, 'id'>, password: string): Promise<void> => {
   const requestData = convertToRequestFormat(festival, password);
-  const response = await apiCall<FestivalResponse>('/api/admin/performance', {
+  await apiCall('/api/admin/performance', {
     method: 'POST',
     body: JSON.stringify(requestData),
   });
-  return transformFestivalResponse(response);
 };
 
 export const addTimeTable = async (performanceId: number, timeTableData: TimeTableAddRequest): Promise<TimeTableResponse> => {
@@ -269,7 +275,14 @@ export const deleteTimeTable = async (performanceId: number, timeTableId: number
 };
 
 export const updateFestival = async (id: number, festivalUpdate: Partial<Festival>, password: string): Promise<Festival> => {
-  const requestData = convertToRequestFormat({ ...festivalUpdate, id }, password);
+  // urlInfos가 없으면 빈 배열로 설정
+  const festivalDataWithDefaults = {
+    ...festivalUpdate,
+    urlInfos: festivalUpdate.urlInfos || [],
+    id
+  };
+  
+  const requestData = convertToRequestFormat(festivalDataWithDefaults, password);
   const response = await apiCall<FestivalResponse>(`/api/admin/performance/${id}`, {
     method: 'PUT',
     body: JSON.stringify(requestData),
@@ -297,14 +310,19 @@ export const createPlace = async (placeData: PlaceRequestBody): Promise<Place> =
 
 // Helper function to get initial form data for a new festival
 export function getInitialFormData(): Festival {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
   return {
     id: 0,
     name: '',
     placeId: 0,
     placeName: '',
     placeAddress: '',
-    startDate: '',
-    endDate: '',
+    startDate: todayStr,
+    endDate: todayStr,
     posterUrl: '',
     banGoods: '',
     transportationInfo: '',

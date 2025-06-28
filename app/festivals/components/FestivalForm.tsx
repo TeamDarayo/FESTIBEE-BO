@@ -397,12 +397,14 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
           
           {/* URL Infos Section */}
           <div className="border-t pt-6 space-y-4">
-            <h3 className="text-lg font-medium">URL 정보</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-medium">URL 정보</h3>
+              <span className="text-xs text-gray-500">(인스타그램 등)</span>
+            </div>
             {formData.urlInfos.map((urlInfo, index) => (
               <div key={index} className="p-4 border rounded-lg space-y-2">
                 <p>타입: {urlInfo.type}</p>
                 <p>URL: {urlInfo.url}</p>
-                <Button type="button" variant="outline" size="sm" onClick={() => handleRemoveUrlInfo(index)}>URL 삭제</Button>
               </div>
             ))}
             <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
@@ -419,7 +421,10 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
                 </Select>
                 <Input type="url" placeholder="URL 입력" value={newUrlInfo.url} onChange={e => setNewUrlInfo(p => ({...p, url: e.target.value}))} />
               </div>
-              <Button type="button" onClick={handleAddUrlInfo}>URL 추가</Button>
+              <div className="flex items-center gap-2 mt-2">
+                <Button type="button" onClick={handleAddUrlInfo}>URL 추가</Button>
+                <span className="text-xs text-gray-500">URL 추가 버튼을 누른 후 저장해주세요</span>
+              </div>
             </div>
           </div>
           
