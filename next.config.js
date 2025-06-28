@@ -9,6 +9,10 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'cdnimg.melon.co.kr',
+      },
+      {
+        protocol: 'https',
         hostname: 'ticketimage.interpark.com',
       },
       {

@@ -147,4 +147,5 @@ export interface TimeTableAddRequest {
   startTime: string;
   endTime: string;
   hallId: number;
+  password: string;
 } 

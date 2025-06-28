@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Festival, TimeTable, ReservationInfo, TimeTableArtist } from '@/types/festival';
 import { Place, PlaceRequestBody } from '@/types/place';
-import { fetchPlaces, createPlace } from '@/lib/api';
+import { fetchPlaces, createPlace, addTimeTable } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,7 +41,11 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
   
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [pendingPlaceData, setPendingPlaceData] = useState<PlaceRequestBody | null>(null);
-
+  
+  // 타임테이블 추가를 위한 비밀번호 모달 상태
+  const [isTimeTablePasswordModalOpen, setIsTimeTablePasswordModalOpen] = useState(false);
+  const [pendingTimeTableData, setPendingTimeTableData] = useState<any>(null);
+  
   const [newTimeTable, setNewTimeTable] = useState<Omit<TimeTable, 'id'>>({
     performanceDate: '',
     startTime: '',
@@ -151,33 +155,96 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
       return;
     }
 
+    if (!initialData?.id) {
+      alert('페스티벌 ID가 없습니다.');
+      return;
+    }
+
     // 디버깅 정보 출력
     console.log('Selected place:', selectedPlace);
     console.log('Selected place ID:', selectedPlace?.id);
     console.log('Selected hall ID:', newTimeTable.hallId);
     console.log('Available halls:', selectedPlace?.halls);
 
-    setFormData(prev => ({
-      ...prev,
-      timeTables: [...prev.timeTables, { ...newTimeTable, id: Date.now().toString() }],
-    }));
-
-    setNewTimeTable({
-      performanceDate: '',
-      startTime: '',
-      endTime: '',
-      hallId: 0,
-      artists: [],
+    // 타임테이블 데이터를 저장하고 비밀번호 모달 열기
+    setPendingTimeTableData({
+      performanceDate: newTimeTable.performanceDate,
+      startTime: newTimeTable.startTime,
+      endTime: newTimeTable.endTime,
+      hallId: newTimeTable.hallId,
     });
+    setIsTimeTablePasswordModalOpen(true);
   };
 
-  const handleRemoveTimeTable = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      timeTables: prev.timeTables.filter(tt => tt.id !== id),
-    }));
+  const handleTimeTablePasswordConfirm = async (password: string) => {
+    if (!pendingTimeTableData || !initialData?.id) return;
+    
+    // 시간 형식을 HH:mm으로 변환
+    const formatTime = (time: string) => {
+      if (time.includes(':')) {
+        return time; // 이미 HH:mm 형식인 경우
+      }
+      // HHmm 형식인 경우 HH:mm으로 변환
+      if (time.length === 4) {
+        return `${time.slice(0, 2)}:${time.slice(2)}`;
+      }
+      return time;
+    };
+    
+    const formattedData = {
+      performanceDate: pendingTimeTableData.performanceDate,
+      startTime: formatTime(pendingTimeTableData.startTime),
+      endTime: formatTime(pendingTimeTableData.endTime),
+      hallId: pendingTimeTableData.hallId,
+      password: password,
+    };
+    
+    // 디버깅을 위한 로깅
+    console.log('Performance ID:', initialData.id);
+    console.log('Original TimeTable Data:', pendingTimeTableData);
+    console.log('Formatted TimeTable Data:', formattedData);
+    
+    try {
+      await addTimeTable(initialData.id, formattedData);
+      
+      alert('타임테이블이 성공적으로 추가되었습니다.');
+      
+      // 로컬 상태에 추가
+      setFormData(prev => ({
+        ...prev,
+        timeTables: [...prev.timeTables, { 
+          ...formattedData, 
+          id: Date.now(), 
+          artists: [] 
+        }],
+      }));
+
+      // 입력 필드 초기화
+      setNewTimeTable({
+        performanceDate: '',
+        startTime: '',
+        endTime: '',
+        hallId: 0,
+        artists: [],
+      });
+    } catch (error: any) {
+      let errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+      if (error.message && error.message.includes('401')) {
+        errorMessage = '비밀번호를 확인해주세요.';
+      }
+      alert(`오류: ${errorMessage}`);
+      console.error('API Error:', error);
+    } finally {
+      setIsTimeTablePasswordModalOpen(false);
+      setPendingTimeTableData(null);
+    }
   };
-  
+
+  const handleTimeTablePasswordCancel = () => {
+    setIsTimeTablePasswordModalOpen(false);
+    setPendingTimeTableData(null);
+  };
+
   const handleAddArtistToTimeTable = (timeTableId: string) => {
     if (!newArtist.artistId) {
       alert('아티스트 ID를 입력하세요.');
@@ -226,7 +293,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
     });
   };
 
-  const handleRemoveReservationInfo = (id: string) => {
+  const handleRemoveReservationInfo = (id: number) => {
     setFormData(prev => ({
       ...prev,
       reservationInfos: prev.reservationInfos.filter(ri => ri.id !== id),
@@ -298,60 +365,63 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
             </div>
           </div>
           
-          {/* TimeTables Section */}
-          <div className="border-t pt-6 space-y-4">
-            <h3 className="text-lg font-medium">타임테이블 관리</h3>
-            {formData.timeTables.map((tt, index) => (
-              <div key={tt.id || index} className="p-4 border rounded-lg space-y-2">
-                <p>일시: {tt.performanceDate} {tt.startTime}~{tt.endTime}</p>
-                <p>홀 ID: {tt.hallId}</p>
-                <p>아티스트: {tt.artists.map(a => `ID ${a.artistId} (${a.type})`).join(', ')}</p>
-                <Button type="button" variant="outline" size="sm" onClick={() => handleRemoveTimeTable(tt.id!)}>타임테이블 삭제</Button>
+          {/* TimeTables Section - 수정 시에만 표시 */}
+          {initialData && (
+            <div className="border-t pt-6 space-y-4">
+              <h3 className="text-lg font-medium">타임테이블 관리</h3>
+              {formData.timeTables.map((tt, index) => (
+                <div key={tt.id || index} className="p-4 border rounded-lg space-y-2">
+                  <p>일시: {tt.performanceDate} {tt.startTime}~{tt.endTime}</p>
+                  <p>홀: {tt.hallName || `ID: ${tt.hallId}`}</p>
+                  <p>아티스트: {tt.artists.map(a => `ID ${a.artistId} (${a.type})`).join(', ')}</p>
+                </div>
+              ))}
+              <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
+                <h4 className="font-medium">새 타임테이블 추가</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Input type="date" value={newTimeTable.performanceDate} onChange={e => setNewTimeTable(p => ({...p, performanceDate: e.target.value}))} />
+                  <Input placeholder="시작시간 (HH:mm)" value={newTimeTable.startTime} onChange={e => setNewTimeTable(p => ({...p, startTime: e.target.value}))} />
+                  <Input placeholder="종료시간 (HH:mm)" value={newTimeTable.endTime} onChange={e => setNewTimeTable(p => ({...p, endTime: e.target.value}))} />
+                  <Select onValueChange={(hallId) => setNewTimeTable(p => ({...p, hallId: parseInt(hallId, 10)}))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="홀 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedPlace?.halls.map(h => <SelectItem key={h.id} value={h.id.toString()}>{h.name} (ID: {h.id})</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button type="button" onClick={handleAddTimeTable}>타임테이블 추가</Button>
               </div>
-            ))}
-            <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
-              <h4 className="font-medium">새 타임테이블 추가</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input type="date" value={newTimeTable.performanceDate} onChange={e => setNewTimeTable(p => ({...p, performanceDate: e.target.value}))} />
-                <Input placeholder="시작시간 (HH:mm)" value={newTimeTable.startTime} onChange={e => setNewTimeTable(p => ({...p, startTime: e.target.value}))} />
-                <Input placeholder="종료시간 (HH:mm)" value={newTimeTable.endTime} onChange={e => setNewTimeTable(p => ({...p, endTime: e.target.value}))} />
-                <Select onValueChange={(hallId) => setNewTimeTable(p => ({...p, hallId: parseInt(hallId, 10)}))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="홀 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedPlace?.halls.map(h => <SelectItem key={h.id} value={h.id.toString()}>{h.name} (ID: {h.id})</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="button" onClick={handleAddTimeTable}>타임테이블 추가</Button>
             </div>
-          </div>
+          )}
 
-          {/* ReservationInfos Section */}
-          <div className="border-t pt-6 space-y-4">
-            <h3 className="text-lg font-medium">예매 정보 관리</h3>
-            {formData.reservationInfos.map((ri, index) => (
-              <div key={ri.id || index} className="p-4 border rounded-lg space-y-2">
-                <p>오픈: {ri.openDateTime}</p>
-                <p>마감: {ri.closeDateTime}</p>
-                <p>종류: {ri.type}</p>
-                <p>URL: {ri.ticketURL}</p>
-                <Button type="button" variant="outline" size="sm" onClick={() => handleRemoveReservationInfo(ri.id!)}>예매 정보 삭제</Button>
+          {/* ReservationInfos Section - 수정 시에만 표시 */}
+          {initialData && (
+            <div className="border-t pt-6 space-y-4">
+              <h3 className="text-lg font-medium">예매 정보 관리</h3>
+              {formData.reservationInfos.map((ri, index) => (
+                <div key={ri.id || index} className="p-4 border rounded-lg space-y-2">
+                  <p>오픈: {ri.openDateTime}</p>
+                  <p>마감: {ri.closeDateTime}</p>
+                  <p>종류: {ri.type}</p>
+                  <p>URL: {ri.ticketURL}</p>
+                  <Button type="button" variant="outline" size="sm" onClick={() => handleRemoveReservationInfo(ri.id!)}>예매 정보 삭제</Button>
+                </div>
+              ))}
+              <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
+                <h4 className="font-medium">새 예매 정보 추가</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input type="datetime-local" placeholder="오픈 일시" value={newReservationInfo.openDateTime} onChange={e => setNewReservationInfo(p => ({...p, openDateTime: e.target.value}))} />
+                  <Input type="datetime-local" placeholder="마감 일시" value={newReservationInfo.closeDateTime} onChange={e => setNewReservationInfo(p => ({...p, closeDateTime: e.target.value}))} />
+                  <Input placeholder="예매 종류" value={newReservationInfo.type} onChange={e => setNewReservationInfo(p => ({...p, type: e.target.value}))} />
+                  <Input type="url" placeholder="예매처 URL" value={newReservationInfo.ticketURL} onChange={e => setNewReservationInfo(p => ({...p, ticketURL: e.target.value}))} />
+                  <Textarea placeholder="비고" value={newReservationInfo.remark} onChange={e => setNewReservationInfo(p => ({...p, remark: e.target.value}))} className="md:col-span-2" />
+                </div>
+                <Button type="button" onClick={handleAddReservationInfo}>예매 정보 추가</Button>
               </div>
-            ))}
-            <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
-              <h4 className="font-medium">새 예매 정보 추가</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input type="datetime-local" placeholder="오픈 일시" value={newReservationInfo.openDateTime} onChange={e => setNewReservationInfo(p => ({...p, openDateTime: e.target.value}))} />
-                <Input type="datetime-local" placeholder="마감 일시" value={newReservationInfo.closeDateTime} onChange={e => setNewReservationInfo(p => ({...p, closeDateTime: e.target.value}))} />
-                <Input placeholder="예매 종류" value={newReservationInfo.type} onChange={e => setNewReservationInfo(p => ({...p, type: e.target.value}))} />
-                <Input type="url" placeholder="예매처 URL" value={newReservationInfo.ticketURL} onChange={e => setNewReservationInfo(p => ({...p, ticketURL: e.target.value}))} />
-                <Textarea placeholder="비고" value={newReservationInfo.remark} onChange={e => setNewReservationInfo(p => ({...p, remark: e.target.value}))} className="md:col-span-2" />
-              </div>
-              <Button type="button" onClick={handleAddReservationInfo}>예매 정보 추가</Button>
             </div>
-          </div>
+          )}
 
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <Button type="button" variant="outline" onClick={onCancel}>취소</Button>
@@ -370,6 +440,13 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen }
         onConfirm={handlePasswordConfirmForPlace}
         title="장소 추가"
         message="새 장소를 추가하려면 관리자 비밀번호를 입력해주세요."
+      />
+      <PasswordModal 
+        isOpen={isTimeTablePasswordModalOpen}
+        onCancel={handleTimeTablePasswordCancel}
+        onConfirm={handleTimeTablePasswordConfirm}
+        title="타임테이블 추가"
+        message="새 타임테이블을 추가하려면 관리자 비밀번호를 입력해주세요."
       />
     </div>
   );
