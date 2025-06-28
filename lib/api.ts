@@ -1,5 +1,5 @@
 import { Festival, TimeTable, ReservationInfo, FestivalResponse, TimeTableResponse, ReservationInfoResponse, TimeTableArtist, FestivalCreateRequest, TimeTableRequest, ReservationInfoRequest, PerformanceRequest, TimeTableAddRequest } from '@/types/festival';
-import { Place, PlaceRequestBody } from '@/types/place';
+import { Place, PlaceRequestBody, Hall } from '@/types/place';
 
 // 아티스트 관련 타입 정의
 export interface ArtistAlias {
@@ -143,11 +143,20 @@ export const deleteArtistAlias = async (aliasId: number): Promise<void> => {
 };
 
 // Helper to transform the nested API response to our flat frontend Festival type
-const transformFestivalResponse = (res: FestivalResponse): Festival => {
+const transformFestivalResponse = (res: FestivalResponse, places?: Place[]): Festival => {
   const { performance, timeTables, reservationInfos, artists, urlInfos } = res;
+  
+  // placeName을 기반으로 placeId 찾기
+  let placeId: number | undefined;
+  if (places && performance.placeName) {
+    const matchingPlace = places.find(place => place.placeName === performance.placeName);
+    placeId = matchingPlace?.id;
+  }
+  
   return {
     id: performance.id,
     name: performance.name,
+    placeId: placeId,
     placeName: performance.placeName,
     placeAddress: performance.placeAddress,
     startDate: performance.startDate,
@@ -157,19 +166,34 @@ const transformFestivalResponse = (res: FestivalResponse): Festival => {
     transportationInfo: performance.transportationInfo,
     remark: performance.remark,
     urlInfos: urlInfos || [],
-    timeTables: timeTables.map(tt => ({
-      id: tt.id,
-      performanceDate: tt.performanceDate,
-      startTime: tt.startTime,
-      endTime: tt.endTime,
-      hallName: tt.performanceHall,
-      artists: tt.artists.map(artist => ({
-        timetableArtistId: artist.timetableArtistId,
-        artistId: artist.artistId,
-        artistName: artist.artistName,
-        type: artist.type,
-      })),
-    })),
+    timeTables: timeTables.map(tt => {
+      // performanceHall을 기반으로 hallId 찾기
+      let hallId: number | undefined;
+      if (places && tt.performanceHall) {
+        const matchingPlace = places.find(place => 
+          place.halls.some(hall => hall.name === tt.performanceHall)
+        );
+        if (matchingPlace) {
+          const matchingHall = matchingPlace.halls.find(hall => hall.name === tt.performanceHall);
+          hallId = matchingHall?.id;
+        }
+      }
+      
+      return {
+        id: tt.id,
+        performanceDate: tt.performanceDate,
+        startTime: tt.startTime,
+        endTime: tt.endTime,
+        hallId: hallId,
+        hallName: tt.performanceHall,
+        artists: tt.artists.map(artist => ({
+          timetableArtistId: artist.timetableArtistId,
+          artistId: artist.artistId,
+          artistName: artist.artistName,
+          type: artist.type,
+        })),
+      };
+    }),
     reservationInfos: reservationInfos.map(ri => ({
       id: ri.id,
       openDateTime: ri.openDateTime,
@@ -187,8 +211,11 @@ const transformFestivalResponse = (res: FestivalResponse): Festival => {
 
 // API 구현 - 페스티벌
 export const fetchFestivals = async (): Promise<Festival[]> => {
-  const response = await apiCall<FestivalResponse[]>('/api/admin/performance');
-  return response.map(transformFestivalResponse);
+  const [response, places] = await Promise.all([
+    apiCall<FestivalResponse[]>('/api/admin/performance'),
+    apiCall<Place[]>('/api/admin/place')
+  ]);
+  return response.map(res => transformFestivalResponse(res, places));
 };
 
 export const fetchFestivalById = async (id: number): Promise<Festival> => {
@@ -265,6 +292,21 @@ export const addTimeTable = async (performanceId: number, timeTableData: TimeTab
   });
 };
 
+// 타임테이블 아티스트 추가
+export const addTimeTableArtist = async (timetableId: number, artistData: { artistId: number; participationType: string }): Promise<any> => {
+  return await apiCall(`/api/admin/timetable/${timetableId}/artist`, {
+    method: 'PUT',
+    body: JSON.stringify(artistData),
+  });
+};
+
+// 타임테이블 아티스트 삭제
+export const deleteTimeTableArtist = async (timetableId: number, artistId: number): Promise<void> => {
+  return await apiCall(`/api/admin/timetable/${timetableId}/artist/${artistId}`, {
+    method: 'DELETE',
+  });
+};
+
 export const deleteTimeTable = async (performanceId: number, timeTableId: number, password: string): Promise<void> => {
   return await apiCall(`/api/admin/performance/${performanceId}/timetable/${timeTableId}`, {
     method: 'DELETE',
@@ -323,6 +365,12 @@ export const createPlace = async (placeData: PlaceRequestBody): Promise<Place> =
     method: 'POST',
     body: JSON.stringify(placeData),
   });
+};
+
+// 장소별 홀 목록 가져오기
+export const fetchHallsByPlaceId = async (placeId: number): Promise<Hall[]> => {
+  const place = await apiCall<Place>(`/api/admin/place/${placeId}`);
+  return place.halls || [];
 };
 
 // Helper function to get initial form data for a new festival

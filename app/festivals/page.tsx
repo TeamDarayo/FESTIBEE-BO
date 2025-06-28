@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Festival } from '@/types/festival';
-import { fetchFestivals, createFestival, updateFestival, deleteFestival, updateReservationInfos } from '@/lib/api';
+import { fetchFestivals, createFestival, updateFestival, deleteFestival, updateReservationInfos, fetchHallsByPlaceId, addTimeTable, fetchPlaces } from '@/lib/api';
 import { format } from 'date-fns';
 import FestivalForm from './components/FestivalForm';
 import Image from 'next/image';
@@ -13,6 +13,7 @@ import ReservationInfo from './components/ReservationInfo';
 import PasswordModal from '@/components/PasswordModal';
 import React from 'react';
 import { FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { Hall } from '@/types/place';
 
 export default function FestivalsPage() {
   const [festivals, setFestivals] = useState<Festival[]>([]);
@@ -22,11 +23,12 @@ export default function FestivalsPage() {
   const [editingFestival, setEditingFestival] = useState<Festival | null>(null);
   const [openTimeTable, setOpenTimeTable] = useState<number | null>(null);
   const [openReservation, setOpenReservation] = useState<number | null>(null);
+  const [hallsByPlaceId, setHallsByPlaceId] = useState<Record<number, Hall[]>>({});
   
   // 비밀번호 모달 상태
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{
-    type: 'create' | 'update' | 'delete' | 'updateReservation';
+    type: 'create' | 'update' | 'delete' | 'updateReservation' | 'updateTimeTable';
     data?: any;
     id?: number;
   } | null>(null);
@@ -38,7 +40,37 @@ export default function FestivalsPage() {
   const loadFestivals = async () => {
     try {
       const data = await fetchFestivals();
+      console.log('Fetched festivals:', data);
       setFestivals(data);
+      
+      // 전체 장소 목록을 가져와서 홀 정보 추출
+      try {
+        const places = await fetchPlaces();
+        console.log('Fetched places:', places);
+        const hallsMap: Record<number, Hall[]> = {};
+        
+        // 각 장소의 홀 정보를 맵에 저장
+        places.forEach(place => {
+          console.log(`Processing place ${place.id}: ${place.placeName}`, place.halls);
+          hallsMap[place.id] = place.halls || [];
+        });
+        
+        console.log('Halls map:', hallsMap);
+        
+        // 페스티벌의 placeId 확인
+        data.forEach(festival => {
+          console.log(`Festival "${festival.name}" has placeId: ${festival.placeId}`);
+          if (festival.placeId && hallsMap[festival.placeId]) {
+            console.log(`Available halls for festival "${festival.name}":`, hallsMap[festival.placeId]);
+          }
+        });
+        
+        setHallsByPlaceId(hallsMap);
+      } catch (error) {
+        console.error('Failed to fetch places:', error);
+        setHallsByPlaceId({});
+      }
+      
       setError(null);
     } catch (err) {
       setError('Failed to load festivals');
@@ -81,7 +113,7 @@ export default function FestivalsPage() {
           break;
         case 'delete':
           if (pendingAction.id) {
-            await deleteFestival(pendingAction.id, password);
+            await deleteFestival(pendingAction.id);
             alert('페스티벌이 성공적으로 삭제되었습니다.');
           }
           break;
@@ -89,6 +121,21 @@ export default function FestivalsPage() {
           if (pendingAction.id) {
             await updateReservationInfos(pendingAction.id, pendingAction.data, password);
             alert('예매정보가 성공적으로 추가되었습니다.');
+          }
+          break;
+        case 'updateTimeTable':
+          if (pendingAction.id) {
+            // 새로운 타임테이블 데이터 추출
+            const newTimeTable = pendingAction.data[pendingAction.data.length - 1]; // 마지막 항목이 새로 추가된 것
+            await addTimeTable(pendingAction.id, {
+              performanceDate: newTimeTable.performanceDate,
+              startTime: newTimeTable.startTime,
+              endTime: newTimeTable.endTime,
+              hallId: newTimeTable.hallId,
+              password: password
+            });
+            alert('타임테이블이 성공적으로 추가되었습니다.');
+            await loadFestivals();
           }
           break;
       }
@@ -166,6 +213,38 @@ export default function FestivalsPage() {
     }
   };
 
+  const handleSaveNewTimeTable = async (newTimeTable: any) => {
+    try {
+      // 빈 객체가 전달되면 아티스트 업데이트 후 새로고침
+      if (Object.keys(newTimeTable).length === 0) {
+        await loadFestivals();
+        return;
+      }
+
+      // 현재 페스티벌의 타임테이블 목록을 가져옴
+      const currentFestival = festivals.find(f => f.id === openTimeTable);
+      if (!currentFestival) {
+        throw new Error('페스티벌을 찾을 수 없습니다.');
+      }
+
+      // 새로운 타임테이블을 기존 목록에 추가 (id는 서버에서 생성됨)
+      const updatedTimeTables = [
+        ...currentFestival.timeTables,
+        newTimeTable
+      ];
+
+      // 비밀번호 모달을 열기 위해 pendingAction 설정
+      setPendingAction({
+        type: 'updateTimeTable',
+        id: currentFestival.id,
+        data: updatedTimeTables,
+      });
+      setIsPasswordModalOpen(true);
+    } catch (error: any) {
+      alert(`타임테이블 추가 오류: ${error.message}`);
+    }
+  };
+
   const getPasswordModalTitle = () => {
     if (!pendingAction) return '';
     switch (pendingAction.type) {
@@ -173,6 +252,7 @@ export default function FestivalsPage() {
       case 'update': return '페스티벌 수정';
       case 'delete': return '페스티벌 삭제';
       case 'updateReservation': return '예매정보 추가';
+      case 'updateTimeTable': return '타임테이블 추가';
       default: return '관리자 인증';
     }
   };
@@ -184,6 +264,7 @@ export default function FestivalsPage() {
       case 'update': return '페스티벌을 수정하기 위해 관리자 비밀번호를 입력해주세요.';
       case 'delete': return '페스티벌을 삭제하기 위해 관리자 비밀번호를 입력해주세요.';
       case 'updateReservation': return '예매정보를 추가하기 위해 관리자 비밀번호를 입력해주세요.';
+      case 'updateTimeTable': return '타임테이블을 추가하기 위해 관리자 비밀번호를 입력해주세요.';
       default: return '관리자 비밀번호를 입력해주세요.';
     }
   };
@@ -284,7 +365,12 @@ export default function FestivalsPage() {
                     {openTimeTable === festival.id && (
                       <TableRow>
                         <TableCell colSpan={8} className="p-4 bg-muted">
-                          <TimeTable timeTables={festival.timeTables} />
+                          <TimeTable 
+                            timeTables={festival.timeTables}
+                            onSaveNewTimeTable={(newTimeTable) => handleSaveNewTimeTable(newTimeTable)}
+                            showManageButtons={true}
+                            availableHalls={festival.placeId ? (hallsByPlaceId[festival.placeId] || []) : []}
+                          />
                         </TableCell>
                       </TableRow>
                     )}
