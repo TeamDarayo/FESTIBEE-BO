@@ -1,10 +1,7 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
 import Link from 'next/link';
 import { FiCalendar, FiUsers } from 'react-icons/fi';
-
-const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Festibee Admin',
@@ -18,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body className={inter.className + " bg-gray-100"}>
+      <body className="font-sans bg-gray-100">
         <div className="min-h-screen flex">
           {/* Sidebar */}
           <aside className="w-60 bg-white border-r border-gray-200 flex flex-col py-8 px-4 shadow-sm">

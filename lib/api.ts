@@ -44,6 +44,8 @@ async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<
       'Content-Type': 'application/json',
       ...options.headers,
     },
+    // 타임아웃 설정 (30초)
+    signal: AbortSignal.timeout(30000),
     ...options,
   };
 
@@ -75,6 +77,12 @@ async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<
     return await response.json();
   } catch (error) {
     console.error(`API call failed for ${endpoint}:`, error);
+    
+    // 타임아웃 에러 처리
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      throw new Error('요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+    }
+    
     throw error;
   }
 }
