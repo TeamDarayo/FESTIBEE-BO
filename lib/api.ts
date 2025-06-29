@@ -33,10 +33,7 @@ const getApiBaseUrl = () => {
 
 // Helper function for API calls
 async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const baseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost' 
-    ? 'http://localhost:8080' 
-    : 'https://dals2bo.com';
-
+  const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}${endpoint}`;
   
   const defaultOptions: RequestInit = {
