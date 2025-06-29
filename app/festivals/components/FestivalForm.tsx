@@ -271,7 +271,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
     setFormData(prev => ({
       ...prev,
       timeTables: prev.timeTables.map(tt => 
-        tt.id === timeTableId 
+        tt.id === Number(timeTableId) 
           ? { ...tt, artists: [...tt.artists, newArtist] }
           : tt
       )
@@ -283,7 +283,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
     setFormData(prev => ({
       ...prev,
       timeTables: prev.timeTables.map(tt =>
-        tt.id === timeTableId
+        tt.id === Number(timeTableId)
           ? { ...tt, artists: tt.artists.filter(a => a.artistId !== artistIdToRemove) }
           : tt
       ),
