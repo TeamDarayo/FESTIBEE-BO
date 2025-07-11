@@ -45,10 +45,14 @@ export default function ReservationInfo({
       return;
     }
 
-    // 날짜 형식을 ISO 형식으로 변환
+    // 날짜 형식을 서버 형식으로 변환 (시간대 변환 없이)
     const formatDateTime = (dateTimeString: string) => {
-      const date = new Date(dateTimeString);
-      return date.toISOString();
+      // datetime-local 입력값을 그대로 사용하되, 서버 형식에 맞게 변환
+      // 예: "2025-07-12T18:00" -> "2025-07-12T18:00:00Z"
+      if (dateTimeString.includes('T') && !dateTimeString.includes('Z')) {
+        return `${dateTimeString}:00Z`;
+      }
+      return dateTimeString;
     };
 
     const reservationForServer = {
@@ -183,11 +187,22 @@ export default function ReservationInfo({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">마감 일시</label>
-              <Input 
-                type="datetime-local" 
-                value={newReservation.closeDateTime}
-                onChange={(e) => setNewReservation(prev => ({ ...prev, closeDateTime: e.target.value }))}
-              />
+              <div className="flex gap-2">
+                <Input 
+                  type="datetime-local" 
+                  value={newReservation.closeDateTime}
+                  onChange={(e) => setNewReservation(prev => ({ ...prev, closeDateTime: e.target.value }))}
+                />
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setNewReservation(prev => ({ ...prev, closeDateTime: '9999-12-31T23:59' }))}
+                  className="whitespace-nowrap"
+                >
+                  마감일 없음
+                </Button>
+              </div>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">비고</label>

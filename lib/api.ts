@@ -358,13 +358,28 @@ function convertToRequestFormat(festivalData: any, password: string): FestivalCr
         type: artist.type,
       }))
     })),
-    reservationInfos: isNewFestival ? [] : reservationInfos.map((ri: any): ReservationInfoRequest => ({
-      openDateTime: ri.openDateTime.includes('T') && !ri.openDateTime.includes('Z') ? `${ri.openDateTime}:00Z` : ri.openDateTime,
-      closeDateTime: ri.closeDateTime.includes('T') && !ri.closeDateTime.includes('Z') ? `${ri.closeDateTime}:00Z` : ri.closeDateTime,
-      type: ri.type,
-      ticketURL: ri.ticketURL,
-      remark: ri.remark,
-    })),
+    reservationInfos: isNewFestival ? [] : reservationInfos.map((ri: any): ReservationInfoRequest => {
+      // 시간 형식 처리: 이미 초가 있으면 그대로, 없으면 :00:00 추가
+      const formatDateTime = (dateTime: string) => {
+        if (dateTime.includes('Z')) {
+          return dateTime.replace('Z', '');
+        }
+        // HH:MM 형식인지 확인 (초가 없는 경우)
+        const timePart = dateTime.split('T')[1];
+        if (timePart && timePart.split(':').length === 2) {
+          return `${dateTime}:00:00`;
+        }
+        return dateTime;
+      };
+
+      return {
+        openDateTime: formatDateTime(ri.openDateTime),
+        closeDateTime: formatDateTime(ri.closeDateTime),
+        type: ri.type,
+        ticketURL: ri.ticketURL,
+        remark: ri.remark,
+      };
+    }),
     urlInfos: urlInfos || [], // null 방지
   };
 
@@ -435,14 +450,29 @@ export const deleteFestival = async (id: number): Promise<void> => {
 
 export const updateReservationInfos = async (performanceId: number, reservationInfos: ReservationInfo[], password: string): Promise<void> => {
   // 서버의 List<EditReservationInfoReq> 구조에 맞게 변환
-  const reservationInfosForServer = reservationInfos.map(ri => ({
-    id: ri.id || null, // id가 없으면 null로 전송
-    openDateTime: ri.openDateTime,
-    closeDateTime: ri.closeDateTime,
-    type: ri.type,
-    ticketURL: ri.ticketURL,
-    remark: ri.remark || null,
-  }));
+  const reservationInfosForServer = reservationInfos.map(ri => {
+    // 시간 형식 처리: 이미 초가 있으면 그대로, 없으면 :00:00 추가
+    const formatDateTime = (dateTime: string) => {
+      if (dateTime.includes('Z')) {
+        return dateTime.replace('Z', '');
+      }
+      // HH:MM 형식인지 확인 (초가 없는 경우)
+      const timePart = dateTime.split('T')[1];
+      if (timePart && timePart.split(':').length === 2) {
+        return `${dateTime}:00:00`;
+      }
+      return dateTime;
+    };
+
+    return {
+      id: ri.id !== undefined ? ri.id : null, // id가 undefined일 때만 null로 전송
+      openDateTime: formatDateTime(ri.openDateTime),
+      closeDateTime: formatDateTime(ri.closeDateTime),
+      type: ri.type,
+      ticketURL: ri.ticketURL,
+      remark: ri.remark || null,
+    };
+  });
 
   return await apiCall(`/api/admin/performance/${performanceId}/reservation`, {
     method: 'PUT',
