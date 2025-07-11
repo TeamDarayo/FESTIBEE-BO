@@ -204,11 +204,31 @@ export const checkArtistDuplicate = async (name: string, excludeId?: number): Pr
 const transformFestivalResponse = (res: FestivalResponse, places?: Place[]): Festival => {
   const { performance, timeTables, reservationInfos, artists, urlInfos } = res;
   
-  // placeName을 기반으로 placeId 찾기
+  // placeName과 placeAddress를 기반으로 placeId 찾기 (더 정확한 매칭)
   let placeId: number | undefined;
   if (places && performance.placeName) {
-    const matchingPlace = places.find(place => place.placeName === performance.placeName);
+    let matchingPlace;
+    
+    // 1. 이름과 주소가 모두 일치하는 경우 (가장 정확)
+    if (performance.placeAddress) {
+      matchingPlace = places.find(place => 
+        place.placeName === performance.placeName && 
+        place.address === performance.placeAddress
+      );
+    }
+    
+    // 2. 이름만 일치하는 경우 (fallback)
+    if (!matchingPlace) {
+      matchingPlace = places.find(place => place.placeName === performance.placeName);
+    }
+    
     placeId = matchingPlace?.id;
+    
+    // 디버깅 로그
+    if (performance.placeName && !placeId) {
+      console.warn(`Place not found: ${performance.placeName} (${performance.placeAddress})`);
+      console.log('Available places:', places.map(p => ({ id: p.id, name: p.placeName, address: p.address })));
+    }
   }
   
   return {
@@ -225,9 +245,23 @@ const transformFestivalResponse = (res: FestivalResponse, places?: Place[]): Fes
     remark: performance.remark,
     urlInfos: urlInfos || [],
     timeTables: timeTables.map(tt => {
-      // performanceHall을 기반으로 hallId 찾기
+      // performanceHall을 기반으로 hallId 찾기 (매칭된 장소에서만 검색)
       let hallId: number | undefined;
-      if (places && tt.performanceHall) {
+      if (places && tt.performanceHall && placeId) {
+        // 매칭된 장소에서 홀 찾기
+        const matchingPlace = places.find(place => place.id === placeId);
+        if (matchingPlace) {
+          const matchingHall = matchingPlace.halls.find(hall => hall.name === tt.performanceHall);
+          hallId = matchingHall?.id;
+          
+          // 디버깅 로그
+          if (tt.performanceHall && !hallId) {
+            console.warn(`Hall not found in place ${matchingPlace.placeName}: ${tt.performanceHall}`);
+            console.log('Available halls:', matchingPlace.halls.map(h => ({ id: h.id, name: h.name })));
+          }
+        }
+      } else if (places && tt.performanceHall) {
+        // placeId가 없는 경우 fallback: 모든 장소에서 검색
         const matchingPlace = places.find(place => 
           place.halls.some(hall => hall.name === tt.performanceHall)
         );
@@ -277,8 +311,11 @@ export const fetchFestivals = async (): Promise<Festival[]> => {
 };
 
 export const fetchFestivalById = async (id: number): Promise<Festival> => {
-  const response = await apiCall<FestivalResponse>(`/api/admin/performance/${id}`);
-  return transformFestivalResponse(response);
+  const [response, places] = await Promise.all([
+    apiCall<FestivalResponse>(`/api/admin/performance/${id}`),
+    apiCall<Place[]>('/api/admin/place')
+  ]);
+  return transformFestivalResponse(response, places);
 };
 
 // Helper function to convert form data to API request format
