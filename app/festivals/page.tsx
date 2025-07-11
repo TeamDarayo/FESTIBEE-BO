@@ -323,8 +323,20 @@ export default function FestivalsPage() {
                       <TableCell className="font-medium">{festival.name}</TableCell>
                       <TableCell>{festival.placeName || '미정'}<br/><span className="text-xs text-gray-500">{festival.placeAddress || ''}</span></TableCell>
                       <TableCell>{`${festival.startDate} ~ ${festival.endDate}`}</TableCell>
-                      <TableCell>{festival.banGoods}</TableCell>
-                      <TableCell>{festival.transportationInfo}</TableCell>
+                      <TableCell>
+                        <div className="max-h-20 overflow-y-auto">
+                          <div className="whitespace-pre-wrap text-sm">
+                            {festival.banGoods}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="max-h-20 overflow-y-auto">
+                          <div className="whitespace-pre-wrap text-sm">
+                            {festival.transportationInfo}
+                          </div>
+                        </div>
+                      </TableCell>
                       <TableCell>{festival.remark}</TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button size="sm" variant="outline" onClick={() => {

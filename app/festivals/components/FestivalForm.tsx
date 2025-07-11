@@ -425,13 +425,31 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
               <Label htmlFor="posterUrl">포스터 URL</Label>
               <Input id="posterUrl" type="url" required value={formData.posterUrl} onChange={handleInputChange} disabled={isReadOnly} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <Label htmlFor="banGoods">금지 물품</Label>
-              <Input id="banGoods" value={formData.banGoods} onChange={handleInputChange} disabled={isReadOnly} />
+              <div className="max-h-32 overflow-y-auto border rounded-md">
+                <Textarea 
+                  id="banGoods" 
+                  value={formData.banGoods} 
+                  onChange={handleInputChange} 
+                  disabled={isReadOnly}
+                  className="border-0 resize-none min-h-[80px]"
+                  placeholder="금지 물품을 입력하세요..."
+                />
+              </div>
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="transportationInfo">교통 정보</Label>
-              <Textarea id="transportationInfo" value={formData.transportationInfo} onChange={handleInputChange} disabled={isReadOnly} />
+              <div className="max-h-32 overflow-y-auto border rounded-md">
+                <Textarea 
+                  id="transportationInfo" 
+                  value={formData.transportationInfo} 
+                  onChange={handleInputChange} 
+                  disabled={isReadOnly}
+                  className="border-0 resize-none min-h-[80px]"
+                  placeholder="교통 정보를 입력하세요..."
+                />
+              </div>
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="remark">비고</Label>
