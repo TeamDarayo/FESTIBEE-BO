@@ -147,6 +147,59 @@ export const deleteArtistAlias = async (aliasId: number): Promise<void> => {
   });
 };
 
+// 아티스트 중복 체크 (이름과 별명 모두 확인)
+export const checkArtistDuplicate = async (name: string, excludeId?: number): Promise<{ isDuplicate: boolean; duplicateType: 'name' | 'alias' | null; duplicateName: string | null }> => {
+  try {
+    const artists = await fetchArtists();
+    
+    // 이름 중복 체크
+    const nameDuplicate = artists.find(artist => 
+      artist.name.toLowerCase() === name.toLowerCase() && 
+      (!excludeId || artist.id !== excludeId)
+    );
+    
+    if (nameDuplicate) {
+      return {
+        isDuplicate: true,
+        duplicateType: 'name',
+        duplicateName: nameDuplicate.name
+      };
+    }
+    
+    // 별명 중복 체크
+    const aliasDuplicate = artists.find(artist => 
+      artist.aliases.some(alias => 
+        alias.name.toLowerCase() === name.toLowerCase()
+      ) && 
+      (!excludeId || artist.id !== excludeId)
+    );
+    
+    if (aliasDuplicate) {
+      const duplicateAlias = aliasDuplicate.aliases.find(alias => 
+        alias.name.toLowerCase() === name.toLowerCase()
+      );
+      return {
+        isDuplicate: true,
+        duplicateType: 'alias',
+        duplicateName: duplicateAlias?.name || null
+      };
+    }
+    
+    return {
+      isDuplicate: false,
+      duplicateType: null,
+      duplicateName: null
+    };
+  } catch (error) {
+    console.error('Error checking artist duplicate:', error);
+    return {
+      isDuplicate: false,
+      duplicateType: null,
+      duplicateName: null
+    };
+  }
+};
+
 // Helper to transform the nested API response to our flat frontend Festival type
 const transformFestivalResponse = (res: FestivalResponse, places?: Place[]): Festival => {
   const { performance, timeTables, reservationInfos, artists, urlInfos } = res;

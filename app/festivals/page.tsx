@@ -370,6 +370,7 @@ export default function FestivalsPage() {
                             onSaveNewTimeTable={(newTimeTable) => handleSaveNewTimeTable(newTimeTable)}
                             showManageButtons={true}
                             availableHalls={festival.placeId ? (hallsByPlaceId[festival.placeId] || []) : []}
+                            festivalStartDate={festival.startDate}
                           />
                         </TableCell>
                       </TableRow>

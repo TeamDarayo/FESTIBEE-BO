@@ -85,6 +85,14 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
     if (isOpen) {
       loadPlaces();
       setFormData(getInitialFormData(initialData));
+      
+      // 타임테이블 등록 시 페스티벌의 첫날짜를 기본값으로 설정
+      if (initialData?.startDate) {
+        setNewTimeTable(prev => ({
+          ...prev,
+          performanceDate: initialData.startDate
+        }));
+      }
     }
   }, [initialData, isOpen]);
 
@@ -237,9 +245,9 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
         }],
       }));
 
-      // 입력 필드 초기화
+      // 입력 필드 초기화 (페스티벌의 첫날짜를 기본값으로 설정)
       setNewTimeTable({
-        performanceDate: '',
+        performanceDate: initialData.startDate || '',
         startTime: '',
         endTime: '',
         hallId: 0,
