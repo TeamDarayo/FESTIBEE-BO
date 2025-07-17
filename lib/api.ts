@@ -27,8 +27,8 @@ const getApiBaseUrl = () => {
     }
   }
   
-  // 그렇지 않으면 원격 서버로 요청
-  return 'http://34.22.94.61:8080';
+  // 그렇지 않으면 원격 서버로 요청 (현재는 개발 서버만 사용)
+  return 'https://darayo-festival.shop';
 };
 
 // Helper function for API calls
