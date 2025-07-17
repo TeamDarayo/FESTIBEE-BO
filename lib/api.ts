@@ -28,7 +28,7 @@ const getApiBaseUrl = () => {
   }
   
   // 그렇지 않으면 원격 서버로 요청
-  return 'https://festival-app-358499057731.asia-northeast3.run.app';
+  return 'http://34.22.94.61:8080';
 };
 
 // Helper function for API calls
