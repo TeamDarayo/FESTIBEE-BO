@@ -93,6 +93,43 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
           performanceDate: initialData.startDate
         }));
       }
+    } else {
+      // 폼이 닫힐 때 모든 상태를 초기화
+      setFormData(getInitialFormData());
+      setNewTimeTable({
+        performanceDate: '',
+        startTime: '',
+        endTime: '',
+        hallId: 0,
+        artists: [],
+      });
+      setNewArtist({ artistId: 0, type: 'MAIN' });
+      setNewReservationInfo({
+        openDateTime: '',
+        closeDateTime: '',
+        ticketURL: '',
+        type: '',
+        remark: '',
+      });
+      setNewUrlInfo({
+        url: '',
+        type: URLType.HOMEPAGE,
+      });
+      setEditingReservationIndex(null);
+      setEditReservationInfo({
+        openDateTime: '',
+        closeDateTime: '',
+        ticketURL: '',
+        type: '',
+        remark: '',
+      });
+      setShowAddReservationForm(false);
+      setShowReservationSection(false);
+      setIsPlaceFormOpen(false);
+      setIsPasswordModalOpen(false);
+      setIsTimeTablePasswordModalOpen(false);
+      setPendingPlaceData(null);
+      setPendingTimeTableData(null);
     }
   }, [initialData, isOpen]);
 

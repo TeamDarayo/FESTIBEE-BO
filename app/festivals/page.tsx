@@ -143,6 +143,9 @@ export default function FestivalsPage() {
       await loadFestivals();
       setEditingFestival(null);
       setIsFormOpen(false);
+      // 성공 후 모든 상태를 초기화
+      setOpenTimeTable(null);
+      setOpenReservation(null);
     } catch (error: any) {
       // 서버 에러 응답을 alert로 표시
       let errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
@@ -170,6 +173,9 @@ export default function FestivalsPage() {
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setEditingFestival(null);
+    // 폼이 닫힐 때 모든 관련 상태를 초기화
+    setOpenTimeTable(null);
+    setOpenReservation(null);
   };
 
   const handleAddReservation = (festivalId: number) => {
