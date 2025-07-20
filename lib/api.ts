@@ -99,7 +99,8 @@ export const createArtist = async (artist: Omit<Artist, 'id'>, password: string)
     body: JSON.stringify({
       password: password,
       name: artist.name,
-      description: artist.description
+      description: artist.description,
+      aliasList: artist.aliases?.map(alias => alias.name) || []
     }),
   });
 };
