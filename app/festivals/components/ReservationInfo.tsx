@@ -23,6 +23,7 @@ export default function ReservationInfo({
   onSaveNewReservation
 }: ReservationInfoProps) {
   const [isAddingReservation, setIsAddingReservation] = useState(false);
+  const [isNoCloseDate, setIsNoCloseDate] = useState(false);
   const [newReservation, setNewReservation] = useState<Omit<ReservationInfoType, 'id'>>({
     openDateTime: '',
     closeDateTime: '',
@@ -78,6 +79,7 @@ export default function ReservationInfo({
 
   const handleCancelAdd = () => {
     setIsAddingReservation(false);
+    setIsNoCloseDate(false);
     setNewReservation({
       openDateTime: '',
       closeDateTime: '',
@@ -182,7 +184,15 @@ export default function ReservationInfo({
               <Input 
                 type="datetime-local" 
                 value={newReservation.openDateTime}
-                onChange={(e) => setNewReservation(prev => ({ ...prev, openDateTime: e.target.value }))}
+                onChange={(e) => {
+                  const newOpenDateTime = e.target.value;
+                  setNewReservation(prev => ({
+                    ...prev, 
+                    openDateTime: newOpenDateTime,
+                    // 마감일 없음이 설정되어 있으면 마감 일시도 함께 업데이트
+                    closeDateTime: isNoCloseDate ? newOpenDateTime : prev.closeDateTime
+                  }));
+                }}
               />
             </div>
             <div>
@@ -192,15 +202,27 @@ export default function ReservationInfo({
                   type="datetime-local" 
                   value={newReservation.closeDateTime}
                   onChange={(e) => setNewReservation(prev => ({ ...prev, closeDateTime: e.target.value }))}
+                  disabled={isNoCloseDate}
+                  className={isNoCloseDate ? 'bg-gray-100 text-gray-500' : ''}
                 />
                 <Button 
                   type="button"
-                  variant="outline" 
+                  variant={isNoCloseDate ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setNewReservation(prev => ({ ...prev, closeDateTime: '9999-12-31T23:59' }))}
+                  onClick={() => {
+                    if (isNoCloseDate) {
+                      // 마감일 없음 해제
+                      setIsNoCloseDate(false);
+                      setNewReservation(prev => ({ ...prev, closeDateTime: '' }));
+                    } else {
+                      // 마감일 없음 설정
+                      setIsNoCloseDate(true);
+                      setNewReservation(prev => ({ ...prev, closeDateTime: prev.openDateTime }));
+                    }
+                  }}
                   className="whitespace-nowrap"
                 >
-                  마감일 없음
+                  {isNoCloseDate ? '마감일 설정' : '마감일 없음'}
                 </Button>
               </div>
             </div>
