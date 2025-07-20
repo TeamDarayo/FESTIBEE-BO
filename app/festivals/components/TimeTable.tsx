@@ -633,9 +633,9 @@ export default function TimeTable({
                   <SelectTrigger className="w-20">
                     <SelectValue placeholder="분" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => {
-                      const minute = i * 5;
+                  <SelectContent className="max-h-60 overflow-y-auto">
+                    {Array.from({ length: 60 }, (_, i) => {
+                      const minute = i;
                       return (
                         <SelectItem key={minute} value={minute.toString().padStart(2, '0')}>
                           {minute.toString().padStart(2, '0')}
@@ -678,9 +678,9 @@ export default function TimeTable({
                   <SelectTrigger className="w-20">
                     <SelectValue placeholder="분" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => {
-                      const minute = i * 5;
+                  <SelectContent className="max-h-60 overflow-y-auto">
+                    {Array.from({ length: 60 }, (_, i) => {
+                      const minute = i;
                       return (
                         <SelectItem key={minute} value={minute.toString().padStart(2, '0')}>
                           {minute.toString().padStart(2, '0')}
