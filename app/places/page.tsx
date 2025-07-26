@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Place, fetchPlaces, createPlace, updatePlace, deletePlace, updateHall, addHalls, PlaceRequestBody } from '@/lib/api';
+import { fetchPlaces, createPlace, updatePlace, deletePlace, updateHall, addHalls } from '@/lib/api';
+import { Place, PlaceRequestBody } from '@/types/place';
 import PlaceForm from './components/PlaceForm';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from '@/components/ui/table';
