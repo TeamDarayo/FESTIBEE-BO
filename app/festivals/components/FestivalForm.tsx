@@ -436,7 +436,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
                   <SelectTrigger>
                     <SelectValue placeholder="장소를 선택하세요" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-60 overflow-y-auto">
                     {isLoadingPlaces ? (
                       <SelectItem value="loading" disabled>불러오는 중...</SelectItem>
                     ) : (
@@ -444,7 +444,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
                     )}
                   </SelectContent>
                 </Select>
-                {!isReadOnly && (
+                {!isReadOnly && initialData && (
                   <Button type="button" variant="outline" onClick={() => setIsPlaceFormOpen(true)}>새 장소 추가</Button>
                 )}
               </div>

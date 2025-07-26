@@ -493,6 +493,50 @@ export const createPlace = async (placeData: PlaceRequestBody): Promise<Place> =
   });
 };
 
+export const updatePlace = async (id: number, placeData: PlaceRequestBody, password: string): Promise<Place> => {
+  return await apiCall<Place>(`/api/admin/place/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      password: password,
+      ...placeData
+    }),
+  });
+};
+
+export const updateHall = async (hallId: number, hallData: { name: string }, password: string): Promise<Hall> => {
+  return await apiCall<Hall>(`/api/admin/place/hall/${hallId}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      password: password,
+      ...hallData
+    }),
+  });
+};
+
+export const addHalls = async (placeId: number, hallNames: string[], password: string): Promise<Hall[]> => {
+  const results: Hall[] = [];
+  for (const name of hallNames) {
+    const hall = await apiCall<Hall>(`/api/admin/place/${placeId}/hall`, {
+      method: 'POST',
+      body: JSON.stringify({
+        password: password,
+        name: name
+      }),
+    });
+    results.push(hall);
+  }
+  return results;
+};
+
+export const deletePlace = async (id: number, password: string): Promise<void> => {
+  return await apiCall(`/api/admin/place/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'X-Admin-Password': password,
+    },
+  });
+};
+
 // 장소별 홀 목록 가져오기
 export const fetchHallsByPlaceId = async (placeId: number): Promise<Hall[]> => {
   const place = await apiCall<Place>(`/api/admin/place/${placeId}`);
