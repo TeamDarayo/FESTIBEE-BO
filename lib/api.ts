@@ -567,4 +567,21 @@ export function getInitialFormData(): Festival {
     urlInfos: [],
     artists: [],
   };
-} 
+}
+
+// 알람 테스트 API 함수들
+export interface AlarmTestRequest {
+  type: 'updateReservation' | 'reservation' | 'timetable' | 'guide';
+  date: string;
+  dayLeft?: number;
+}
+
+export const sendAlarmTest = async (request: AlarmTestRequest): Promise<any> => {
+  const params = new URLSearchParams({
+    type: request.type,
+    date: request.date,
+    ...(request.dayLeft !== undefined && { dayLeft: request.dayLeft.toString() })
+  });
+  
+  return await apiCall(`/v1/alarm/test?${params.toString()}`);
+}; 

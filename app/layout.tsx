@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Link from 'next/link';
-import { FiCalendar, FiUsers, FiMapPin } from 'react-icons/fi';
+import { FiCalendar, FiUsers, FiMapPin, FiBell } from 'react-icons/fi';
 
 export const metadata: Metadata = {
   title: 'Festibee Dashboard',
@@ -32,6 +32,10 @@ export default function RootLayout({
               <Link href="/places" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition font-medium">
                 <FiMapPin className="text-xl" />
                 Manage Places
+              </Link>
+              <Link href="/alarms" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition font-medium">
+                <FiBell className="text-xl" />
+                Alarm Tests
               </Link>
             </nav>
           </aside>
