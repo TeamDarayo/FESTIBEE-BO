@@ -219,6 +219,11 @@ export default function AlarmsPage() {
               {result}
             </pre>
           </div>
+          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              <strong>주의:</strong> 발송 대상이 없어도 성공으로 처리됩니다.
+            </p>
+          </div>
         </div>
       )}
 
