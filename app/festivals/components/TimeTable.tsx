@@ -745,8 +745,10 @@ export default function TimeTable({
                 </div>
               )}
               
-                              {selectedArtists.map((artist, index) => (
-                  <div key={index} className="flex gap-2 mb-2 p-2 border rounded">
+              {/* 아티스트 목록 스크롤 영역 */}
+              <div className="max-h-60 overflow-y-auto border rounded-lg p-2">
+                {selectedArtists.map((artist, index) => (
+                  <div key={index} className="flex gap-2 mb-2 p-2 border rounded bg-gray-50">
                     <Select 
                       value={artist.artistId.toString()} 
                       onValueChange={(value) => updateArtist(index, 'artistId', value)}
@@ -754,7 +756,7 @@ export default function TimeTable({
                       <SelectTrigger className="w-48">
                         <SelectValue placeholder="아티스트 선택" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-60 overflow-y-auto">
                         {(lastAddedArtistIndex === index ? filteredArtists : artists).length > 0 ? (
                           (lastAddedArtistIndex === index ? filteredArtists : artists).map(a => (
                             <SelectItem key={a.id} value={a.id.toString()}>
@@ -779,7 +781,7 @@ export default function TimeTable({
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-60 overflow-y-auto">
                       <SelectItem value="MAIN">메인</SelectItem>
                       <SelectItem value="SUB">서브</SelectItem>
                     </SelectContent>
@@ -796,6 +798,7 @@ export default function TimeTable({
                   </Button>
                 </div>
               ))}
+              </div>
             </div>
 
             {/* 버튼들 */}
