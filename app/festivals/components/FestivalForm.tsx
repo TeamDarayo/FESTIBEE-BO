@@ -565,8 +565,8 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
             )}
           </div>
           
-          {/* TimeTables Section - 수정 시에만 표시 */}
-          {initialData && (
+          {/* TimeTables Section - 수정 시에만 표시 (상세보기에서는 숨김) */}
+          {initialData && !isReadOnly && (
             <div className="border-t pt-6 space-y-4">
               <h3 className="text-lg font-medium">타임테이블 관리</h3>
               {formData.timeTables.length === 0 ? (
@@ -584,30 +584,28 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
                   ))}
                 </>
               )}
-              {!isReadOnly && (
-                <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
-                  <h4 className="font-medium">새 타임테이블 추가</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Input type="date" value={newTimeTable.performanceDate} onChange={e => setNewTimeTable(p => ({...p, performanceDate: e.target.value}))} />
-                    <Input placeholder="시작시간 (HH:mm)" value={newTimeTable.startTime} onChange={e => setNewTimeTable(p => ({...p, startTime: e.target.value}))} />
-                    <Input placeholder="종료시간 (HH:mm)" value={newTimeTable.endTime} onChange={e => setNewTimeTable(p => ({...p, endTime: e.target.value}))} />
-                    <Select onValueChange={(hallId) => setNewTimeTable(p => ({...p, hallId: parseInt(hallId, 10)}))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="홀 선택" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedPlace?.halls.map(h => <SelectItem key={h.id} value={h.id.toString()}>{h.name} (ID: {h.id})</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button type="button" onClick={handleAddTimeTable}>타임테이블 추가</Button>
+              <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
+                <h4 className="font-medium">새 타임테이블 추가</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Input type="date" value={newTimeTable.performanceDate} onChange={e => setNewTimeTable(p => ({...p, performanceDate: e.target.value}))} />
+                  <Input placeholder="시작시간 (HH:mm)" value={newTimeTable.startTime} onChange={e => setNewTimeTable(p => ({...p, startTime: e.target.value}))} />
+                  <Input placeholder="종료시간 (HH:mm)" value={newTimeTable.endTime} onChange={e => setNewTimeTable(p => ({...p, endTime: e.target.value}))} />
+                  <Select onValueChange={(hallId) => setNewTimeTable(p => ({...p, hallId: parseInt(hallId, 10)}))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="홀 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedPlace?.halls.map(h => <SelectItem key={h.id} value={h.id.toString()}>{h.name} (ID: {h.id})</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
+                <Button type="button" onClick={handleAddTimeTable}>타임테이블 추가</Button>
+              </div>
             </div>
           )}
 
-          {/* ReservationInfos Section - 수정 시에만 표시 */}
-          {initialData && (
+          {/* ReservationInfos Section - 수정 시에만 표시 (상세보기에서는 숨김) */}
+          {initialData && !isReadOnly && (
             <div className="border-t pt-6 space-y-4">
               <h3 className="text-lg font-medium">예매 정보</h3>
               {formData.reservationInfos.length === 0 ? (
@@ -637,37 +635,33 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
                           <p>종류: {ri.type}</p>
                           <p>URL: {ri.ticketURL}</p>
                           <p>비고: {ri.remark}</p>
-                          {!isReadOnly && (
-                            <Button type="button" variant="outline" size="sm" onClick={() => handleEditReservationInfo(index)}>수정</Button>
-                          )}
+                          <Button type="button" variant="outline" size="sm" onClick={() => handleEditReservationInfo(index)}>수정</Button>
                         </>
                       )}
                     </div>
                   ))}
                 </div>
               )}
-              {!isReadOnly && (
-                <>
-                  {showAddReservationForm ? (
-                    <div className="p-4 border rounded-lg space-y-4 bg-gray-50 mt-4">
-                      <h4 className="font-medium">새 예매 정보 추가</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input type="datetime-local" placeholder="오픈 일시" value={newReservationInfo.openDateTime} onChange={e => setNewReservationInfo(p => ({...p, openDateTime: e.target.value}))} />
-                        <Input type="datetime-local" placeholder="마감 일시" value={newReservationInfo.closeDateTime} onChange={e => setNewReservationInfo(p => ({...p, closeDateTime: e.target.value}))} />
-                        <Input placeholder="예매 종류" value={newReservationInfo.type} onChange={e => setNewReservationInfo(p => ({...p, type: e.target.value}))} />
-                        <Input type="url" placeholder="예매처 URL" value={newReservationInfo.ticketURL} onChange={e => setNewReservationInfo(p => ({...p, ticketURL: e.target.value}))} />
-                        <Textarea placeholder="비고" value={newReservationInfo.remark} onChange={e => setNewReservationInfo(p => ({...p, remark: e.target.value}))} className="md:col-span-2" />
-                      </div>
-                      <div className="flex gap-2 mt-2">
-                        <Button type="button" onClick={handleAddReservationInfo}>추가</Button>
-                        <Button type="button" variant="outline" onClick={() => setShowAddReservationForm(false)}>취소</Button>
-                      </div>
+              <>
+                {showAddReservationForm ? (
+                  <div className="p-4 border rounded-lg space-y-4 bg-gray-50 mt-4">
+                    <h4 className="font-medium">새 예매 정보 추가</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input type="datetime-local" placeholder="오픈 일시" value={newReservationInfo.openDateTime} onChange={e => setNewReservationInfo(p => ({...p, openDateTime: e.target.value}))} />
+                      <Input type="datetime-local" placeholder="마감 일시" value={newReservationInfo.closeDateTime} onChange={e => setNewReservationInfo(p => ({...p, closeDateTime: e.target.value}))} />
+                      <Input placeholder="예매 종류" value={newReservationInfo.type} onChange={e => setNewReservationInfo(p => ({...p, type: e.target.value}))} />
+                      <Input type="url" placeholder="예매처 URL" value={newReservationInfo.ticketURL} onChange={e => setNewReservationInfo(p => ({...p, ticketURL: e.target.value}))} />
+                      <Textarea placeholder="비고" value={newReservationInfo.remark} onChange={e => setNewReservationInfo(p => ({...p, remark: e.target.value}))} className="md:col-span-2" />
                     </div>
-                  ) : (
-                    <Button type="button" className="mt-4" onClick={() => setShowAddReservationForm(true)}>예매 정보 추가</Button>
-                  )}
-                </>
-              )}
+                    <div className="flex gap-2 mt-2">
+                      <Button type="button" onClick={handleAddReservationInfo}>추가</Button>
+                      <Button type="button" variant="outline" onClick={() => setShowAddReservationForm(false)}>취소</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button type="button" className="mt-4" onClick={() => setShowAddReservationForm(true)}>예매 정보 추가</Button>
+                )}
+              </>
             </div>
           )}
 

@@ -257,11 +257,6 @@ export default function TimeTable({
   };
 
   const handleSaveArtists = async () => {
-    if (selectedArtists.length === 0) {
-      alert('최소 1명 이상의 아티스트를 선택해주세요.');
-      return;
-    }
-
     if (!selectedTimeTable) {
       alert('타임테이블을 찾을 수 없습니다.');
       return;
