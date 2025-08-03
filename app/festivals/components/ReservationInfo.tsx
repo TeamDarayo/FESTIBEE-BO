@@ -13,6 +13,7 @@ interface ReservationInfoProps {
   onEditReservation?: () => void;
   showManageButtons?: boolean;
   onSaveNewReservation?: (reservation: Omit<ReservationInfoType, 'id'>) => void;
+  onSaveUpdatedReservations?: (reservations: ReservationInfoType[]) => void;
 }
 
 export default function ReservationInfo({ 
@@ -20,11 +21,21 @@ export default function ReservationInfo({
   onAddReservation, 
   onEditReservation, 
   showManageButtons = false,
-  onSaveNewReservation
+  onSaveNewReservation,
+  onSaveUpdatedReservations
 }: ReservationInfoProps) {
   const [isAddingReservation, setIsAddingReservation] = useState(false);
   const [isNoCloseDate, setIsNoCloseDate] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [newReservation, setNewReservation] = useState<Omit<ReservationInfoType, 'id'>>({
+    openDateTime: '',
+    closeDateTime: '',
+    ticketURL: '',
+    type: '',
+    remark: ''
+  });
+  const [editingReservation, setEditingReservation] = useState<ReservationInfoType>({
+    id: 0,
     openDateTime: '',
     closeDateTime: '',
     ticketURL: '',
@@ -38,6 +49,67 @@ export default function ReservationInfo({
     } else {
       setIsAddingReservation(true);
     }
+  };
+
+  const handleEditReservation = (index: number) => {
+    const reservation = reservationInfos[index];
+    setEditingReservation({
+      ...reservation,
+      openDateTime: reservation.openDateTime.replace('Z', '').replace(':00', ''),
+      closeDateTime: reservation.closeDateTime.replace('Z', '').replace(':00', '')
+    });
+    setEditingIndex(index);
+  };
+
+  const handleSaveEditReservation = () => {
+    if (!editingReservation.openDateTime || !editingReservation.closeDateTime || !editingReservation.ticketURL || !editingReservation.type) {
+      alert('모든 필수 필드를 입력해주세요.');
+      return;
+    }
+
+    // 날짜 형식을 서버 형식으로 변환
+    const formatDateTime = (dateTimeString: string) => {
+      if (dateTimeString.includes('T') && !dateTimeString.includes('Z')) {
+        return `${dateTimeString}:00Z`;
+      }
+      return dateTimeString;
+    };
+
+    const updatedReservation = {
+      ...editingReservation,
+      openDateTime: formatDateTime(editingReservation.openDateTime),
+      closeDateTime: formatDateTime(editingReservation.closeDateTime),
+    };
+
+    // 기존 배열에서 해당 인덱스의 항목을 업데이트
+    const updatedReservations = [...reservationInfos];
+    updatedReservations[editingIndex!] = updatedReservation;
+
+    if (onSaveUpdatedReservations) {
+      onSaveUpdatedReservations(updatedReservations);
+    }
+
+    setEditingIndex(null);
+    setEditingReservation({
+      id: 0,
+      openDateTime: '',
+      closeDateTime: '',
+      ticketURL: '',
+      type: '',
+      remark: ''
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingIndex(null);
+    setEditingReservation({
+      id: 0,
+      openDateTime: '',
+      closeDateTime: '',
+      ticketURL: '',
+      type: '',
+      remark: ''
+    });
   };
 
   const handleSaveNewReservation = () => {
@@ -119,10 +191,13 @@ export default function ReservationInfo({
                 <TableHead className="font-semibold text-gray-700">마감 일시</TableHead>
                 <TableHead className="font-semibold text-gray-700">티켓 URL</TableHead>
                 <TableHead className="font-semibold text-gray-700">비고</TableHead>
+                {showManageButtons && (
+                  <TableHead className="font-semibold text-gray-700">작업</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reservationInfos.map((info) => (
+              {reservationInfos.map((info, index) => (
                 <TableRow key={info.id} className="hover:bg-gray-50">
                   <TableCell className="font-medium text-gray-900">
                     {info.type}
@@ -146,10 +221,82 @@ export default function ReservationInfo({
                   <TableCell className="text-gray-900">
                     {info.remark || '-'}
                   </TableCell>
+                  {showManageButtons && (
+                    <TableCell>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => handleEditReservation(index)}
+                      >
+                        수정
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+        </div>
+      )}
+
+      {/* 예매정보 수정 폼 */}
+      {editingIndex !== null && (
+        <div className="border rounded-lg p-6 bg-yellow-50 mb-6">
+          <h3 className="text-lg font-medium mb-4">예매정보 수정</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">예매 유형</label>
+              <Select 
+                value={editingReservation.type} 
+                onValueChange={(value) => setEditingReservation(prev => ({ ...prev, type: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="예매 유형 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="GENERAL">일반</SelectItem>
+                  <SelectItem value="EARLY_BIRD">얼리버드</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">티켓 URL</label>
+              <Input 
+                type="url" 
+                placeholder="https://example.com/ticket" 
+                value={editingReservation.ticketURL}
+                onChange={(e) => setEditingReservation(prev => ({ ...prev, ticketURL: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">오픈 일시</label>
+              <Input 
+                type="datetime-local" 
+                value={editingReservation.openDateTime}
+                onChange={(e) => setEditingReservation(prev => ({ ...prev, openDateTime: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">마감 일시</label>
+              <Input 
+                type="datetime-local" 
+                value={editingReservation.closeDateTime}
+                onChange={(e) => setEditingReservation(prev => ({ ...prev, closeDateTime: e.target.value }))}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">비고</label>
+              <Textarea 
+                placeholder="추가 정보를 입력하세요" 
+                value={editingReservation.remark}
+                onChange={(e) => setEditingReservation(prev => ({ ...prev, remark: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button onClick={handleSaveEditReservation}>저장</Button>
+            <Button variant="outline" onClick={handleCancelEdit}>취소</Button>
+          </div>
         </div>
       )}
 
@@ -245,7 +392,7 @@ export default function ReservationInfo({
       {/* 관리 버튼들 */}
       {showManageButtons && (
         <div className="flex gap-2">
-          {!isAddingReservation && (
+          {!isAddingReservation && editingIndex === null && (
             <Button onClick={handleAddReservationClick}>
               예매정보 추가
             </Button>
