@@ -433,7 +433,8 @@ export default function FestivalsPage() {
         onSubmit={editingFestival ? handleUpdateFestival : handleCreateFestival}
         onCancel={handleCloseForm}
         initialData={editingFestival || undefined}
-        isReadOnly={editingFestival ? true : false}
+        isReadOnly={false}
+        hideTimeTableAndReservation={editingFestival ? true : false}
       />
 
       <PasswordModal

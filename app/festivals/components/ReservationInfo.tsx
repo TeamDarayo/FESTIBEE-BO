@@ -82,10 +82,12 @@ export default function ReservationInfo({
     };
 
     // 기존 배열에서 해당 인덱스의 항목을 업데이트
+    // 수정되지 않은 기존 예매 정보들도 함께 포함하여 전체 배열을 전송
     const updatedReservations = [...reservationInfos];
     updatedReservations[editingIndex!] = updatedReservation;
 
     if (onSaveUpdatedReservations) {
+      // 전체 예매 정보 배열을 전달 (수정된 항목 + 수정되지 않은 기존 항목들)
       onSaveUpdatedReservations(updatedReservations);
     }
 

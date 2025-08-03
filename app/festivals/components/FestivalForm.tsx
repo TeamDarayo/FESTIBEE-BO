@@ -17,6 +17,7 @@ interface FestivalFormProps {
   initialData?: Festival;
   isOpen: boolean;
   isReadOnly?: boolean;
+  hideTimeTableAndReservation?: boolean;
 }
 
 const getInitialFormData = (initialData?: Festival): Omit<Festival, 'id'> => ({
@@ -35,7 +36,7 @@ const getInitialFormData = (initialData?: Festival): Omit<Festival, 'id'> => ({
   urlInfos: initialData?.urlInfos || [],
 });
 
-export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, isReadOnly }: FestivalFormProps) {
+export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, isReadOnly, hideTimeTableAndReservation }: FestivalFormProps) {
   const [formData, setFormData] = useState<Omit<Festival, 'id'>>(() => getInitialFormData(initialData));
   const [places, setPlaces] = useState<Place[]>([]);
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
@@ -432,7 +433,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
             <div className="space-y-2">
               <Label htmlFor="place">장소</Label>
               <div className="flex gap-2">
-                <Select onValueChange={handlePlaceSelect} value={formData.placeName || ''} disabled={isReadOnly}>
+                <Select onValueChange={handlePlaceSelect} value={formData.placeName || ''} disabled={isReadOnly || (initialData && hideTimeTableAndReservation)}>
                   <SelectTrigger>
                     <SelectValue placeholder="장소를 선택하세요" />
                   </SelectTrigger>
@@ -444,7 +445,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
                     )}
                   </SelectContent>
                 </Select>
-                {!isReadOnly && initialData && (
+                {!isReadOnly && initialData && !hideTimeTableAndReservation && (
                   <Button type="button" variant="outline" onClick={() => setIsPlaceFormOpen(true)}>새 장소 추가</Button>
                 )}
               </div>
@@ -542,8 +543,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
                 ))}
               </div>
             )}
-            {!isReadOnly && (
-              <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
+            <div className="p-4 border rounded-lg space-y-4 bg-gray-50">
                 <h4 className="font-medium">새 URL 추가</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Select onValueChange={(type) => setNewUrlInfo(p => ({...p, type: type as URLType}))} value={newUrlInfo.type}>
@@ -562,11 +562,10 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
                   <span className="text-xs text-gray-500">URL 추가 버튼을 누른 후 저장해주세요</span>
                 </div>
               </div>
-            )}
           </div>
           
-          {/* TimeTables Section - 수정 시에만 표시 (상세보기에서는 숨김) */}
-          {initialData && !isReadOnly && (
+          {/* TimeTables Section - 수정 시에만 표시 */}
+          {initialData && !isReadOnly && !hideTimeTableAndReservation && (
             <div className="border-t pt-6 space-y-4">
               <h3 className="text-lg font-medium">타임테이블 관리</h3>
               {formData.timeTables.length === 0 ? (
@@ -604,8 +603,8 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
             </div>
           )}
 
-          {/* ReservationInfos Section - 수정 시에만 표시 (상세보기에서는 숨김) */}
-          {initialData && !isReadOnly && (
+          {/* ReservationInfos Section - 수정 시에만 표시 */}
+          {initialData && !isReadOnly && !hideTimeTableAndReservation && (
             <div className="border-t pt-6 space-y-4">
               <h3 className="text-lg font-medium">예매 정보</h3>
               {formData.reservationInfos.length === 0 ? (
@@ -665,12 +664,10 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
             </div>
           )}
 
-          {!isReadOnly && (
-            <div className="flex justify-end space-x-3 pt-6 border-t">
-              <Button type="button" variant="outline" onClick={onCancel}>취소</Button>
-              <Button type="submit">저장</Button>
-            </div>
-          )}
+          <div className="flex justify-end space-x-3 pt-6 border-t">
+            <Button type="button" variant="outline" onClick={onCancel}>취소</Button>
+            <Button type="submit">저장</Button>
+          </div>
         </form>
       </div>
       <PlaceForm 
