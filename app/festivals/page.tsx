@@ -219,6 +219,20 @@ export default function FestivalsPage() {
     }
   };
 
+  const handleSaveUpdatedReservations = async (festivalId: number, updatedReservations: any[]) => {
+    try {
+      // 비밀번호 모달을 열기 위해 pendingAction 설정
+      setPendingAction({
+        type: 'updateReservation',
+        id: festivalId,
+        data: updatedReservations,
+      });
+      setIsPasswordModalOpen(true);
+    } catch (error: any) {
+      alert(`예매정보 수정 오류: ${error.message}`);
+    }
+  };
+
   const handleSaveNewTimeTable = async (newTimeTable: any) => {
     try {
       // 빈 객체가 전달되면 아티스트 업데이트 후 새로고침
@@ -400,6 +414,7 @@ export default function FestivalsPage() {
                             reservationInfos={festival.reservationInfos}
                             onEditReservation={() => handleEditReservation(festival.id)}
                             onSaveNewReservation={(newReservation) => handleSaveNewReservation(festival.id, newReservation)}
+                            onSaveUpdatedReservations={(updatedReservations) => handleSaveUpdatedReservations(festival.id, updatedReservations)}
                             showManageButtons={true}
                           />
                         </TableCell>
@@ -418,7 +433,8 @@ export default function FestivalsPage() {
         onSubmit={editingFestival ? handleUpdateFestival : handleCreateFestival}
         onCancel={handleCloseForm}
         initialData={editingFestival || undefined}
-        isReadOnly={editingFestival ? true : false}
+        isReadOnly={false}
+        hideTimeTableAndReservation={editingFestival ? true : false}
       />
 
       <PasswordModal

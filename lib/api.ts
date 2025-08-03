@@ -203,7 +203,13 @@ export const checkArtistDuplicate = async (name: string, excludeId?: number): Pr
 
 // Helper to transform the nested API response to our flat frontend Festival type
 const transformFestivalResponse = (res: FestivalResponse, places?: Place[]): Festival => {
-  const { performance, timeTables, reservationInfos, artists, urlInfos } = res;
+  // 응답 구조 검증
+  if (!res || !res.performance) {
+    console.error('Invalid response structure:', res);
+    throw new Error('서버 응답이 올바르지 않습니다.');
+  }
+  
+  const { performance, timeTables = [], reservationInfos = [], artists = [], urlInfos = [] } = res;
   
   // placeName과 placeAddress를 기반으로 placeId 찾기 (더 정확한 매칭)
   let placeId: number | undefined;
@@ -427,20 +433,45 @@ export const deleteTimeTable = async (performanceId: number, timeTableId: number
   });
 };
 
-export const updateFestival = async (id: number, festivalUpdate: Partial<Festival>, password: string): Promise<Festival> => {
-  // urlInfos가 없으면 빈 배열로 설정
-  const festivalDataWithDefaults = {
-    ...festivalUpdate,
-    urlInfos: festivalUpdate.urlInfos || [],
-    id
+export const updateFestival = async (id: number, festivalUpdate: Partial<Festival>, password: string): Promise<void> => {
+  // performance 정보만 추출하여 전송
+  const performanceData = {
+    id,
+    name: festivalUpdate.name,
+    placeId: festivalUpdate.placeId,
+    startDate: festivalUpdate.startDate,
+    endDate: festivalUpdate.endDate,
+    posterUrl: festivalUpdate.posterUrl,
+    banGoods: festivalUpdate.banGoods,
+    transportationInfo: festivalUpdate.transportationInfo,
+    remark: festivalUpdate.remark,
   };
-  
-  const requestData = convertToRequestFormat(festivalDataWithDefaults, password);
-  const response = await apiCall<FestivalResponse>(`/api/admin/performance/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(requestData),
-  });
-  return transformFestivalResponse(response);
+
+  try {
+    const response = await apiCall<FestivalResponse>(`/api/admin/performance/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(performanceData),
+    });
+    
+    // 디버깅을 위한 로깅
+    console.log('updateFestival response:', response);
+    console.log('response type:', typeof response);
+    console.log('response.performance:', response?.performance);
+    
+    // 응답이 올바른 구조인지 확인
+    if (response && response.performance) {
+      // 응답이 있으면 로그만 출력하고 void 반환
+      console.log('Update successful with response:', response);
+    } else {
+      // 서버가 빈 응답을 보내거나 예상과 다른 응답을 보낸 경우
+      // 성공적으로 업데이트되었다고 가정
+      console.warn('Server returned empty or unexpected response, assuming update was successful');
+    }
+    // void 함수이므로 아무것도 반환하지 않음
+  } catch (error) {
+    console.error('Error in updateFestival:', error);
+    throw error;
+  }
 };
 
 export const deleteFestival = async (id: number): Promise<void> => {
@@ -451,6 +482,7 @@ export const deleteFestival = async (id: number): Promise<void> => {
 
 export const updateReservationInfos = async (performanceId: number, reservationInfos: ReservationInfo[], password: string): Promise<void> => {
   // 서버의 List<EditReservationInfoReq> 구조에 맞게 변환
+  // reservationInfos에는 수정된 항목과 수정되지 않은 기존 항목들이 모두 포함됨
   const reservationInfosForServer = reservationInfos.map(ri => {
     // 시간 형식 처리: 이미 초가 있으면 그대로, 없으면 :00:00 추가
     const formatDateTime = (dateTime: string) => {
