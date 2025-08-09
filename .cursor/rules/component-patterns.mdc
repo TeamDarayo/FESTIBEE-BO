@@ -1,0 +1,93 @@
+---
+globs: app/**/*.tsx,components/**/*.tsx
+---
+
+# React Component Patterns and UI Conventions
+
+## Component Structure
+
+### File Organization
+- Page components: `app/[feature]/page.tsx`
+- Feature components: `app/[feature]/components/ComponentName.tsx` 
+- Shared components: `components/ComponentName.tsx`
+- UI primitives: `components/ui/component-name.tsx`
+
+### Component Props Pattern
+Always define explicit interfaces for props:
+```typescript
+interface ComponentProps {
+  required: string;
+  optional?: boolean;
+  callback: (data: Type) => void;
+}
+
+export default function Component({ required, optional, callback }: ComponentProps) {
+  // component logic
+}
+```
+
+## Form Components
+Based on [app/festivals/components/FestivalForm.tsx](mdc:app/festivals/components/FestivalForm.tsx):
+
+### Form State Management
+```typescript
+const [formData, setFormData] = useState<FormType>(() => getInitialFormData());
+
+const getInitialFormData = (initialData?: Type): FormType => ({
+  field1: initialData?.field1 || '',
+  field2: initialData?.field2 || 0,
+  // ... other fields
+});
+```
+
+### Form Update Pattern
+```typescript
+const updateFormData = (updates: Partial<FormType>) => {
+  setFormData(prev => ({ ...prev, ...updates }));
+};
+```
+
+## UI Component Usage
+Use components from `components/ui/`:
+- `Button` for actions
+- `Input` with `Label` for form fields
+- `Select` for dropdowns
+- `Textarea` for multi-line text
+- `Tabs` for tabbed interfaces
+
+### Standard Form Layout
+```tsx
+<div className="space-y-4">
+  <div>
+    <Label htmlFor="field">Field Label</Label>
+    <Input
+      id="field"
+      value={formData.field}
+      onChange={(e) => updateFormData({ field: e.target.value })}
+    />
+  </div>
+</div>
+```
+
+## Modal Patterns
+Use consistent modal patterns like `PasswordModal`:
+- State management for open/closed
+- Callback patterns for confirmation
+- Proper cleanup on close
+
+## Icon Usage
+Icons come from `react-icons/fi` (Feather icons):
+- `FiCalendar` for festivals
+- `FiUsers` for artists  
+- `FiMapPin` for places
+- `FiBell` for alarms
+
+Import pattern:
+```typescript
+import { FiCalendar, FiUsers } from 'react-icons/fi';
+```
+
+## Event Handling
+- Use proper TypeScript event types
+- Handle async operations in event handlers
+- Provide user feedback for loading states

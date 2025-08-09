@@ -1,0 +1,49 @@
+---
+alwaysApply: true
+---
+
+# Festibee Dashboard - Project Structure Guide
+
+This is a Next.js 13+ festival management admin dashboard with TypeScript and Tailwind CSS.
+
+## Project Structure
+
+### Core Files
+- [package.json](mdc:package.json) - Dependencies and scripts
+- [app/layout.tsx](mdc:app/layout.tsx) - Root layout with sidebar navigation
+- [app/globals.css](mdc:app/globals.css) - Global styles
+- [tailwind.config.ts](mdc:tailwind.config.ts) - Tailwind configuration
+
+### Key Directories
+- `app/` - Next.js 13+ app directory with pages and components
+  - `festivals/` - Festival management pages and components
+  - `artists/` - Artist management pages and components  
+  - `places/` - Place management pages and components
+  - `alarms/` - Alarm testing functionality
+- `types/` - TypeScript type definitions
+  - [types/festival.ts](mdc:types/festival.ts) - Festival, TimeTable, and related types
+  - [types/place.ts](mdc:types/place.ts) - Place and Hall types
+- `lib/` - Utility functions and API layer
+  - [lib/api.ts](mdc:lib/api.ts) - Main API functions and HTTP client
+  - [lib/utils.ts](mdc:lib/utils.ts) - Utility functions
+- `components/` - Reusable UI components
+  - `ui/` - Base UI components (button, input, etc.)
+  - Shared components like PasswordModal
+
+### Navigation Structure
+The app has a sidebar navigation with 4 main sections:
+1. **Manage Festivals** (`/festivals`) - CRUD operations for festivals
+2. **Manage Artists** (`/artists`) - Artist management
+3. **Manage Places** (`/places`) - Venue and hall management  
+4. **Alarm Tests** (`/alarms`) - Testing functionality
+
+### API Integration
+- Backend API base URL: `https://darayo-festival.shop` (production) or `http://localhost:8080` (development)
+- All API calls go through [lib/api.ts](mdc:lib/api.ts) with proper error handling and timeouts
+- Password-protected operations for data modification
+
+## File Naming Conventions
+- Pages: `page.tsx` in feature directories
+- Components: PascalCase (e.g., `FestivalForm.tsx`)
+- Types: kebab-case files with PascalCase exports
+- API functions: camelCase

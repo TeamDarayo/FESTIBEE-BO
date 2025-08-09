@@ -1,0 +1,75 @@
+---
+globs: *.tsx,*.css
+---
+
+# Tailwind CSS and Styling Conventions
+
+## Design System Colors
+Based on [tailwind.config.ts](mdc:tailwind.config.ts):
+
+### CSS Variables
+The project uses CSS variables for theming:
+- `--primary` and `--primary-foreground`
+- `--secondary` and `--secondary-foreground`  
+- `--muted` and `--muted-foreground`
+- `--border`, `--input`, `--ring`
+
+### Standard Color Usage
+- **Primary Blue**: `text-blue-600`, `bg-blue-50`, `hover:text-blue-700`
+- **Gray Scales**: `bg-gray-100`, `text-gray-700`, `border-gray-200`
+- **Background**: `bg-white` for cards, `bg-gray-100` for page background
+
+## Layout Patterns
+
+### Page Layout (from [app/layout.tsx](mdc:app/layout.tsx)):
+```tsx
+<div className="min-h-screen flex">
+  <aside className="w-60 bg-white border-r border-gray-200 flex flex-col py-8 px-4 shadow-sm">
+    {/* Sidebar */}
+  </aside>
+  <main className="flex-1 p-8">
+    {/* Page content */}
+  </main>
+</div>
+```
+
+### Navigation Links:
+```tsx
+<Link className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition font-medium">
+  <Icon className="text-xl" />
+  Link Text
+</Link>
+```
+
+## Component Styling Patterns
+
+### Form Styling:
+- Form containers: `space-y-4` for vertical spacing
+- Input groups: Wrap in `<div>` with label + input
+- Buttons: Use UI button component with variants
+
+### Card/Container Styling:
+- Cards: `bg-white border border-gray-200 rounded-lg shadow-sm`
+- Padding: `p-4` for small, `p-6` for medium, `p-8` for large
+- Spacing: `space-y-4` between sections, `gap-4` for flex layouts
+
+### Typography:
+- Headings: `text-2xl font-bold` for main titles
+- Labels: `font-medium` for form labels
+- Body: Default styling, use `text-gray-700` for secondary text
+
+## Responsive Design
+- Use responsive prefixes: `sm:`, `md:`, `lg:`, `xl:`, `2xl:`
+- Mobile-first approach
+- Container max-width: `2xl:max-w-[1400px]`
+
+## Animation and Transitions
+- Use `transition` class for hover effects
+- Available animations: `accordion-down`, `accordion-up`
+- Keep animations subtle and fast (0.2s ease-out)
+
+## Custom Utilities
+The project includes:
+- `tailwindcss-animate` plugin for animations
+- Custom border radius using CSS variables
+- Extended font family stack with system fonts
