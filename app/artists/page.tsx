@@ -303,7 +303,7 @@ export default function ArtistsPage() {
                             src={getImageUrl(artist.imageUrl) || ''} 
                             alt={artist.name}
                             className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => handleImageClick(artist.imageUrl)}
+                            onClick={() => artist.imageUrl && handleImageClick(artist.imageUrl)}
                             onError={(e) => {
                               e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI0IDRDMTIuOTUgNCA0IDEyLjk1IDQgMjRDMCAzNS4wNSA5Ljk1IDQ0IDIxIDQ0QzMzLjA1IDQ0IDQyIDM1LjA1IDQyIDI0QzQyIDEyLjk1IDMzLjA1IDQgMjQgNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTI0IDEyQzI3LjMxIDExIDMwIDExIDMwIDE1QzMwIDE5IDI3LjMxIDIwIDI0IDIwQzIwLjY5IDIwIDE4IDE5IDE4IDE1QzE4IDExIDIwLjY5IDEyIDI0IDEyWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTI0IDI4QzE5LjU5IDI4IDE2IDMxLjU5IDE2IDM2SDMyQzMyIDMxLjU5IDI4LjQxIDI4IDI0IDI4WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
                             }}
@@ -383,7 +383,7 @@ export default function ArtistsPage() {
                         src={getImageUrl(selectedArtist.imageUrl) || ''} 
                         alt={selectedArtist.name}
                         className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => handleImageClick(selectedArtist.imageUrl)}
+                        onClick={() => selectedArtist.imageUrl && handleImageClick(selectedArtist.imageUrl)}
                         onError={(e) => {
                           e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI0IDRDMTIuOTUgNCA0IDEyLjk1IDQgMjRDMCAzNS4wNSA5Ljk1IDQ0IDIxIDQ0QzMzLjA1IDQ0IDQyIDM1LjA1IDQyIDI0QzQyIDEyLjk1IDMzLjA1IDQgMjQgNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTI0IDEyQzI3LjMxIDExIDMwIDExIDMwIDE1QzMwIDE5IDI3LjMxIDIwIDI0IDIwQzIwLjY5IDIwIDE4IDE5IDE4IDE1QzE4IDExIDIwLjY5IDEyIDI0IDEyWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTI0IDI4QzE5LjU5IDI4IDE2IDMxLjU5IDE2IDM2SDMyQzMyIDMxLjU5IDI4LjQxIDI4IDI0IDI4WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
                         }}
