@@ -27,6 +27,7 @@ export default function PlacesPage() {
     hallId?: number;
     hallName?: string;
     hallNames?: string[];
+    hallChanges?: { edits: Array<{id: number, name: string}>, adds: string[] };
   } | null>(null);
 
   useEffect(() => {
@@ -51,9 +52,9 @@ export default function PlacesPage() {
     setIsPasswordModalOpen(true);
   };
 
-  const handleUpdatePlace = async (placeData: PlaceRequestBody) => {
+  const handleUpdatePlace = async (placeData: PlaceRequestBody, hallChanges?: { edits: Array<{id: number, name: string}>, adds: string[] }) => {
     if (!editingPlace) return;
-    setPendingAction({ type: 'update', data: placeData, id: editingPlace.id });
+    setPendingAction({ type: 'update', data: placeData, id: editingPlace.id, hallChanges });
     setIsPasswordModalOpen(true);
   };
 
@@ -84,6 +85,22 @@ export default function PlacesPage() {
         case 'update':
           if (pendingAction.id) {
             await updatePlace(pendingAction.id, pendingAction.data, password);
+            
+            // 홀 변경사항 처리
+            if (pendingAction.hallChanges) {
+              const { edits, adds } = pendingAction.hallChanges;
+              
+              // 홀 수정
+              for (const edit of edits) {
+                await updateHall(edit.id, { name: edit.name }, password);
+              }
+              
+              // 홀 추가
+              if (adds.length > 0) {
+                await addHalls(pendingAction.id, adds, password);
+              }
+            }
+            
             alert('장소가 성공적으로 수정되었습니다.');
           }
           break;
