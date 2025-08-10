@@ -1,0 +1,58 @@
+---
+globs: *.ts,*.tsx
+---
+
+# TypeScript Conventions
+
+## Type Definitions
+All types are defined in the `types/` directory and properly exported.
+
+### Key Patterns from [types/festival.ts](mdc:types/festival.ts):
+- **Interface naming**: Use PascalCase (e.g., `Festival`, `TimeTable`)
+- **Enum usage**: Use uppercase enums like `URLType.INSTAGRAM`
+- **API types**: Separate request/response types with suffixes:
+  - `FestivalResponse` for GET responses
+  - `FestivalCreateRequest` for POST requests  
+  - `TimeTableRequest` for POST data
+- **Optional properties**: Use `?` for optional fields (e.g., `id?: number`)
+
+### Type Organization Pattern:
+```typescript
+// Frontend-facing types first
+export interface Festival { ... }
+
+// API Response types  
+export interface FestivalResponse { ... }
+
+// API Request types
+export interface FestivalCreateRequest { ... }
+```
+
+## Component Props
+- Always define explicit prop interfaces
+- Use `Omit<Type, 'field'>` for excluding fields
+- Include optional props with `?` operator
+
+Example from [app/festivals/components/FestivalForm.tsx](mdc:app/festivals/components/FestivalForm.tsx):
+```typescript
+interface FestivalFormProps {
+  onSubmit: (data: Omit<Festival, 'id'>) => Promise<void>;
+  onCancel: () => void;
+  initialData?: Festival;
+  isOpen: boolean;
+  isReadOnly?: boolean;
+}
+```
+
+## Import Organization
+Always import types from `@/types/` directory:
+```typescript
+import { Festival, TimeTable } from '@/types/festival';
+import { Place } from '@/types/place';
+```
+
+## State Management
+Use proper TypeScript generics with useState:
+```typescript
+const [formData, setFormData] = useState<Omit<Festival, 'id'>>(() => getInitialFormData());
+```
