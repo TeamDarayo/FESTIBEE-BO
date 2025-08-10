@@ -8,7 +8,7 @@ import React from 'react';
 import { FiPlus, FiX, FiEdit2 } from 'react-icons/fi';
 
 interface PlaceFormProps {
-  onSubmit: (data: PlaceRequestBody) => Promise<void>;
+  onSubmit: (data: PlaceRequestBody, hallChanges?: { edits: Array<{id: number, name: string}>, adds: string[] }) => Promise<void>;
   onCancel: () => void;
   onEditHall?: (hallId: number, newName: string) => void;
   onAddHalls?: (placeId: number, hallNames: string[]) => void;
@@ -70,7 +70,8 @@ export default function PlaceForm({ onSubmit, onCancel, onEditHall, onAddHalls, 
     }
 
     try {
-      // 기존 장소 수정 시 홀 변경 분기 처리
+      // 기존 장소 수정 시 홀 변경사항 수집
+      let hallChanges = undefined;
       if (initialData) {
         console.log('기존 장소 수정:', initialData);
         console.log('폼 데이터:', validHalls);
@@ -78,43 +79,34 @@ export default function PlaceForm({ onSubmit, onCancel, onEditHall, onAddHalls, 
         const originalHalls = initialData.halls;
         const originalHallNames = originalHalls.map(hall => hall.name);
         
-        // 1. 이름이 변경된 기존 홀은 updateHall 호출
+        // 1. 이름이 변경된 기존 홀 수집
+        const edits: Array<{id: number, name: string}> = [];
         for (let i = 0; i < Math.min(originalHalls.length, validHalls.length); i++) {
           const orig = originalHalls[i];
           const newName = validHalls[i];
           if (newName && newName !== orig.name) {
             console.log(`홀 수정: ${orig.name} -> ${newName}`);
-            if (onEditHall) {
-              // 비동기 호출을 기다리지 않고 바로 호출
-              onEditHall(orig.id, newName);
-            }
+            edits.push({ id: orig.id, name: newName });
           }
         }
         
-        // 2. 기존에 없던 이름만 addHalls로 추가
-        const newHallNames = validHalls.filter(hallName => !originalHallNames.includes(hallName));
-        if (newHallNames.length > 0) {
-          console.log('새 홀 추가:', newHallNames);
-          if (onAddHalls) {
-            // 비동기 호출을 기다리지 않고 바로 호출
-            onAddHalls(initialData.id, newHallNames);
-          }
+        // 2. 기존에 없던 이름만 수집
+        const adds = validHalls.filter(hallName => !originalHallNames.includes(hallName));
+        if (adds.length > 0) {
+          console.log('새 홀 추가:', adds);
         }
         
-        // 잠시 대기 후 장소 정보 제출 (홀 변경사항이 처리될 시간을 줌)
-        setTimeout(async () => {
-          await onSubmit({
-            ...formData,
-            placeHalls: validHalls,
-          });
-        }, 100);
-      } else {
-        // 신규 장소 추가
-        await onSubmit({
-          ...formData,
-          placeHalls: validHalls,
-        });
+        if (edits.length > 0 || adds.length > 0) {
+          hallChanges = { edits, adds };
+        }
       }
+      
+      // 장소 정보와 홀 변경사항을 함께 제출
+      await onSubmit({
+        ...formData,
+        placeHalls: validHalls,
+      }, hallChanges);
+      
     } catch (error) {
       console.error('Place form submission error:', error);
     }

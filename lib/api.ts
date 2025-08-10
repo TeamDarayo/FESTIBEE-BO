@@ -11,6 +11,7 @@ export interface Artist {
   id: number;
   name: string;
   description: string;
+  imageUrl?: string | null;
   aliases: ArtistAlias[];
 }
 
@@ -100,6 +101,7 @@ export const createArtist = async (artist: Omit<Artist, 'id'>, password: string)
       password: password,
       name: artist.name,
       description: artist.description,
+      imageUrl: artist.imageUrl || null,
       aliasList: artist.aliases?.map(alias => alias.name) || []
     }),
   });
@@ -146,6 +148,18 @@ export const deleteArtistAlias = async (aliasId: number): Promise<void> => {
   return await apiCall(`/api/admin/artist/aliases/${aliasId}`, {
     method: 'DELETE',
   });
+};
+
+// Apple Music 검색 결과 타입
+export interface AppleMusicArtist {
+  artworkUrl: string | null;
+  genreNames: string[];
+  name: string;
+}
+
+// Apple Music 검색 API
+export const searchAppleMusicArtists = async (term: string): Promise<AppleMusicArtist[]> => {
+  return await apiCall<AppleMusicArtist[]>(`/api/admin/applemusic/search?term=${encodeURIComponent(term)}&types=artists`);
 };
 
 // 아티스트 중복 체크 (이름과 별명 모두 확인)

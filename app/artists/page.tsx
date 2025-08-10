@@ -4,18 +4,22 @@ import { useEffect, useState } from 'react';
 import { Artist, fetchArtists, deleteArtist, createArtist, updateArtist, addArtistAliases, deleteArtistAlias, ArtistAlias } from '@/lib/api';
 import ArtistForm from './components/ArtistForm';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from '@/components/ui/table';
 import PasswordModal from '@/components/PasswordModal';
 import React from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiEye } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiEye, FiSearch } from 'react-icons/fi';
 
 export default function ArtistsPage() {
   const [artists, setArtists] = useState<Artist[]>([]);
+  const [filteredArtists, setFilteredArtists] = useState<Artist[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingArtist, setEditingArtist] = useState<Artist | null>(null);
   const [selectedArtist, setSelectedArtist] = useState<Artist | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
   // 비밀번호 모달 상태
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -33,6 +37,7 @@ export default function ArtistsPage() {
     try {
       const data = await fetchArtists();
       setArtists(data);
+      setFilteredArtists(data);
       setError(null);
     } catch (err) {
       setError('Failed to load artists');
@@ -40,6 +45,24 @@ export default function ArtistsPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 검색 기능
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    if (!term.trim()) {
+      setFilteredArtists(artists);
+      return;
+    }
+    
+    const filtered = artists.filter(artist => 
+      artist.name.toLowerCase().includes(term.toLowerCase()) ||
+      artist.description.toLowerCase().includes(term.toLowerCase()) ||
+      artist.aliases.some(alias => 
+        alias.name.toLowerCase().includes(term.toLowerCase())
+      )
+    );
+    setFilteredArtists(filtered);
   };
 
   const handleCreateArtist = async (artistData: Omit<Artist, 'id'>) => {
@@ -66,6 +89,7 @@ export default function ArtistsPage() {
         case 'create':
           await createArtist(pendingAction.data, password);
           alert('아티스트가 성공적으로 추가되었습니다.');
+          await loadArtists(); // 목록 새로고침
           break;
         case 'update':
           if (pendingAction.id) {
@@ -163,6 +187,27 @@ export default function ArtistsPage() {
     setSelectedArtist(null);
   };
 
+  // 이미지 URL 처리 함수
+  const getImageUrl = (imageUrl: string | null | undefined) => {
+    if (!imageUrl) return null;
+    
+    // Apple Music URL인 경우 크기 지정
+    if (imageUrl.includes('{w}x{h}')) {
+      return imageUrl.replace('{w}x{h}', '300x300');
+    }
+    
+    return imageUrl;
+  };
+
+  // 이미지 클릭 핸들러
+  const handleImageClick = (imageUrl: string) => {
+    if (imageUrl.includes('{w}x{h}')) {
+      setSelectedImage(imageUrl.replace('{w}x{h}', '800x800'));
+    } else {
+      setSelectedImage(imageUrl);
+    }
+  };
+
   const getPasswordModalTitle = () => {
     if (!pendingAction) return '';
     switch (pendingAction.type) {
@@ -213,11 +258,32 @@ export default function ArtistsPage() {
               아티스트 추가
             </Button>
           </div>
+          
+          {/* 검색창 */}
+          <div className="mb-6">
+            <div className="relative max-w-md">
+              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                type="text"
+                placeholder="아티스트 이름, 설명, 별칭으로 검색..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            {searchTerm && (
+              <p className="text-sm text-gray-600 mt-2">
+                검색 결과: {filteredArtists.length}개
+              </p>
+            )}
+          </div>
+          
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
+                  <TableHead>이미지</TableHead>
                   <TableHead>이름</TableHead>
                   <TableHead>설명</TableHead>
                   <TableHead>별칭</TableHead>
@@ -225,7 +291,7 @@ export default function ArtistsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {artists.map(artist => (
+                {filteredArtists.map(artist => (
                   <TableRow key={artist.id} className="hover:bg-gray-50">
                     <TableCell className="font-medium text-gray-600">
                       {artist.id}
@@ -237,7 +303,7 @@ export default function ArtistsPage() {
                             src={getImageUrl(artist.imageUrl) || ''} 
                             alt={artist.name}
                             className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => artist.imageUrl && handleImageClick(artist.imageUrl)}
+                            onClick={() => handleImageClick(artist.imageUrl)}
                             onError={(e) => {
                               e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI0IDRDMTIuOTUgNCA0IDEyLjk1IDQgMjRDMCAzNS4wNSA5Ljk1IDQ0IDIxIDQ0QzMzLjA1IDQ0IDQyIDM1LjA1IDQyIDI0QzQyIDEyLjk1IDMzLjA1IDQgMjQgNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTI0IDEyQzI3LjMxIDExIDMwIDExIDMwIDE1QzMwIDE5IDI3LjMxIDIwIDI0IDIwQzIwLjY5IDIwIDE4IDE5IDE4IDE1QzE4IDExIDIwLjY5IDEyIDI0IDEyWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTI0IDI4QzE5LjU5IDI4IDE2IDMxLjU5IDE2IDM2SDMyQzMyIDMxLjU5IDI4LjQxIDI4IDI0IDI4WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
                             }}
@@ -317,7 +383,7 @@ export default function ArtistsPage() {
                         src={getImageUrl(selectedArtist.imageUrl) || ''} 
                         alt={selectedArtist.name}
                         className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => selectedArtist.imageUrl && handleImageClick(selectedArtist.imageUrl)}
+                        onClick={() => handleImageClick(selectedArtist.imageUrl)}
                         onError={(e) => {
                           e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI0IDRDMTIuOTUgNCA0IDEyLjk1IDQgMjRDMCAzNS4wNSA5Ljk1IDQ0IDIxIDQ0QzMzLjA1IDQ0IDQyIDM1LjA1IDQyIDI0QzQyIDEyLjk1IDMzLjA1IDQgMjQgNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTI0IDEyQzI3LjMxIDExIDMwIDExIDMwIDE1QzMwIDE5IDI3LjMxIDIwIDI0IDIwQzIwLjY5IDIwIDE4IDE5IDE4IDE1QzE4IDExIDIwLjY5IDEyIDI0IDEyWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTI0IDI4QzE5LjU5IDI4IDE2IDMxLjU5IDE2IDM2SDMyQzMyIDMxLjU5IDI4LjQxIDI4IDI0IDI4WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
                         }}
@@ -355,6 +421,7 @@ export default function ArtistsPage() {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
             <div className="flex justify-end space-x-3 p-6 border-t border-gray-200">
               <Button variant="outline" onClick={handleCloseModal}>
@@ -385,6 +452,30 @@ export default function ArtistsPage() {
         title={getPasswordModalTitle()}
         message={getPasswordModalMessage()}
       />
+
+      {/* 이미지 확대 모달 */}
+      {selectedImage && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+            >
+              ✕
+            </Button>
+            <img 
+              src={selectedImage} 
+              alt="확대된 이미지"
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onError={(e) => {
+                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI0IDRDMTIuOTUgNCA0IDEyLjk1IDQgMjRDMCAzNS4wNSA5Ljk1IDQ0IDIxIDQ0QzMzLjA1IDQ0IDQyIDM1LjA1IDQyIDI0QzQyIDEyLjk1IDMzLjA1IDQgMjQgNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTI0IDEyQzI3LjMxIDExIDMwIDExIDMwIDE1QzMwIDE5IDI3LjMxIDIwIDI0IDIwQzIwLjY5IDIwIDE4IDE5IDE4IDE1QzE4IDExIDIwLjY5IDEyIDI0IDEyWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTI0IDI4QzE5LjU5IDI4IDE2IDMxLjU5IDE2IDM2SDMyQzMyIDMxLjU5IDI4LjQxIDI4IDI0IDI4WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
