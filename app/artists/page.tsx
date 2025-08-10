@@ -200,7 +200,9 @@ export default function ArtistsPage() {
   };
 
   // 이미지 클릭 핸들러
-  const handleImageClick = (imageUrl: string) => {
+  const handleImageClick = (imageUrl: string | null | undefined) => {
+    if (!imageUrl) return;
+    
     if (imageUrl.includes('{w}x{h}')) {
       setSelectedImage(imageUrl.replace('{w}x{h}', '800x800'));
     } else {
