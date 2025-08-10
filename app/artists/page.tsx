@@ -230,6 +230,25 @@ export default function ArtistsPage() {
                     <TableCell className="font-medium text-gray-600">
                       {artist.id}
                     </TableCell>
+                    <TableCell>
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                        {artist.imageUrl ? (
+                          <img 
+                            src={getImageUrl(artist.imageUrl) || ''} 
+                            alt={artist.name}
+                            className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => artist.imageUrl && handleImageClick(artist.imageUrl)}
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI0IDRDMTIuOTUgNCA0IDEyLjk1IDQgMjRDMCAzNS4wNSA5Ljk1IDQ0IDIxIDQ0QzMzLjA1IDQ0IDQyIDM1LjA1IDQyIDI0QzQyIDEyLjk1IDMzLjA1IDQgMjQgNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTI0IDEyQzI3LjMxIDExIDMwIDExIDMwIDE1QzMwIDE5IDI3LjMxIDIwIDI0IDIwQzIwLjY5IDIwIDE4IDE5IDE4IDE1QzE4IDExIDIwLjY5IDEyIDI0IDEyWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTI0IDI4QzE5LjU5IDI4IDE2IDMxLjU5IDE2IDM2SDMyQzMyIDMxLjU5IDI4LjQxIDI4IDI0IDI4WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-lg font-bold">
+                            {artist.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="font-medium text-lg">{artist.name}</TableCell>
                     <TableCell className="text-gray-600 max-w-xs truncate">
                       {artist.description}
@@ -291,9 +310,27 @@ export default function ArtistsPage() {
             </div>
             <div className="p-6">
               <div className="space-y-6">
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">{selectedArtist.name}</h3>
-                  <div className="grid grid-cols-1 gap-4 text-sm">
+                <div className="flex items-start gap-6">
+                  <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                    {selectedArtist.imageUrl ? (
+                      <img 
+                        src={getImageUrl(selectedArtist.imageUrl) || ''} 
+                        alt={selectedArtist.name}
+                        className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => selectedArtist.imageUrl && handleImageClick(selectedArtist.imageUrl)}
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI0IDRDMTIuOTUgNCA0IDEyLjk1IDQgMjRDMCAzNS4wNSA5Ljk1IDQ0IDIxIDQ0QzMzLjA1IDQ0IDQyIDM1LjA1IDQyIDI0QzQyIDEyLjk1IDMzLjA1IDQgMjQgNFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTI0IDEyQzI3LjMxIDExIDMwIDExIDMwIDE1QzMwIDE5IDI3LjMxIDIwIDI0IDIwQzIwLjY5IDIwIDE4IDE5IDE4IDE1QzE4IDExIDIwLjY5IDEyIDI0IDEyWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTI0IDI4QzE5LjU5IDI4IDE2IDMxLjU5IDE2IDM2SDMyQzMyIDMxLjU5IDI4LjQxIDI4IDI0IDI4WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
+                        {selectedArtist.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">{selectedArtist.name}</h3>
+                    <div className="grid grid-cols-1 gap-4 text-sm">
                     <div>
                       <span className="font-medium text-gray-700">아티스트 ID:</span>
                       <p className="text-gray-900">{selectedArtist.id}</p>
