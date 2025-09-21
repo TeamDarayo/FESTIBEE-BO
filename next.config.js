@@ -25,6 +25,22 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'tkfile.yes24.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'search.pstatic.net'
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.namu.wiki'
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.bpcf.or.kr'
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.sangsangmadang.com'
+      }
     ],
     // 이미지 최적화 설정
     formats: ['image/webp', 'image/avif'],

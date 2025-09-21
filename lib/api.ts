@@ -15,21 +15,33 @@ export interface Artist {
   aliases: ArtistAlias[];
 }
 
-// API Base URL - 환경에 따라 동적으로 설정
+// API Base URL - 모드에 따라 동적으로 설정
 const getApiBaseUrl = () => {
-  // 브라우저 환경에서 현재 호스트가 localhost인지 확인
+  // 브라우저 환경에서만 실행
   if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    const port = window.location.port;
+    // localStorage에서 API 모드 확인
+    const apiMode = localStorage.getItem('api-mode');
     
-    // localhost에서 실행 중이면 8080 포트로 요청
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return `http://localhost:8080`;
+    if (apiMode === 'dev') {
+      return process.env.NEXT_PUBLIC_DEV_API_URL;
+    } else if (apiMode === 'prod') {
+      return process.env.NEXT_PUBLIC_PROD_API_URL;
     }
   }
+
+  // 모드가 설정되지 않은 경우 기존 로직 사용 (fallback)
+  throw new Error('API mode is not set');
+  //   const hostname = window.location.hostname;
+  //   const port = window.location.port;
+    
+  //   // localhost에서 실행 중이면 8080 포트로 요청
+  //   if (hostname === 'localhost' || hostname === '127.0.0.1') {
+  //     return `http://localhost:8080`;
+  //   }
+  // }
   
-  // 그렇지 않으면 원격 서버로 요청 (현재는 개발 서버만 사용)
-  return 'https://darayo-festival.shop';
+  // // 그렇지 않으면 원격 서버로 요청 (현재는 개발 서버만 사용)
+  // return 'https://darayo-festival.shop';
 };
 
 // Helper function for API calls

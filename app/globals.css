@@ -73,4 +73,41 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Mode-specific styling for visual distinction */
+@layer components {
+  /* Development mode warning styles */
+  body[data-mode='dev'] aside {
+    @apply border-l-4 border-l-yellow-500;
+  }
+  
+  body[data-mode='dev'] aside .dashboard-title {
+    @apply text-yellow-600;
+  }
+  
+  body[data-mode='dev'] .header {
+    @apply bg-yellow-400 text-yellow-900;
+  }
+  
+  body[data-mode='dev'] nav a:hover {
+    @apply bg-yellow-50 text-yellow-700;
+  }
+  
+  /* Production mode standard styles */
+  body[data-mode='prod'] aside {
+    @apply border-l-4 border-l-blue-500;
+  }
+  
+  body[data-mode='prod'] aside .dashboard-title {
+    @apply text-blue-600;
+  }
+  
+  body[data-mode='prod'] .header {
+    @apply bg-blue-500 text-blue-50;
+  }
+  
+  body[data-mode='prod'] nav a:hover {
+    @apply bg-blue-50 text-blue-700;
+  }
 } 
