@@ -37,16 +37,7 @@ const alarmCases: AlarmCase[] = [
   },
   {
     id: 'case3',
-    title: 'CASE 3: 시간표 알림',
-    description: '지정한 날짜 이후로 3일 이후에 실제 예매일 있는 공연에 대한 시간표 알림 발송',
-    type: 'timetable',
-    requiresDayLeft: false,
-    defaultDayLeft: 3,
-    icon: <FiClock className="text-purple-500" />
-  },
-  {
-    id: 'case4',
-    title: 'CASE 4: 금지물품/교통안내 알림',
+    title: 'CASE 3: 금지물품/교통안내 알림',
     description: '지정한 날짜 이후로 1일 이후에 실제 예매일 있는 공연에 대한 금지물품/교통안내 알림 발송',
     type: 'guide',
     requiresDayLeft: false,
