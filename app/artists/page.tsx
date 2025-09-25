@@ -352,6 +352,15 @@ export default function ArtistsPage() {
                         <FiEdit2 className="mr-1" />
                         수정
                       </Button>
+                      <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleDeleteArtist(artist.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                        <FiTrash2 className="mr-1" />
+                        삭제
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
