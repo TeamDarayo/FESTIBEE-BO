@@ -11,6 +11,10 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'blogger.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'cdnticket.melon.co.kr',
       },
       {
@@ -20,6 +24,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'ticketimage.interpark.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ticketimage.interpark.comrz',
       },
       {
         protocol: 'https',

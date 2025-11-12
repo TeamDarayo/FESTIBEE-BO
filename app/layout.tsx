@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Link from 'next/link';
-import { FiCalendar, FiUsers, FiMapPin, FiBell } from 'react-icons/fi';
+import { FiCalendar, FiUsers, FiMapPin, FiBell, FiDatabase } from 'react-icons/fi';
 import { ModeProvider } from '@/contexts/ModeContext';
 import { ModeToggle, ModeIndicator } from '@/components/ModeToggle';
 
@@ -41,6 +41,10 @@ export default function RootLayout({
                 <Link href="/places" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition font-medium">
                   <FiMapPin className="text-xl" />
                   Manage Places
+                </Link>
+                <Link href="/crawling" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition font-medium">
+                  <FiDatabase className="text-xl" />
+                  Crawling Management
                 </Link>
                 <Link href="/alarms" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition font-medium">
                   <FiBell className="text-xl" />

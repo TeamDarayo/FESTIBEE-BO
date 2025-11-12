@@ -30,7 +30,7 @@ const getApiBaseUrl = () => {
   }
 
   // 모드가 설정되지 않은 경우 기존 로직 사용 (fallback)
-  throw new Error('API mode is not set');
+  // throw new Error('API mode is not set');
   //   const hostname = window.location.hostname;
   //   const port = window.location.port;
     
@@ -642,4 +642,22 @@ export const sendAlarmTest = async (request: AlarmTestRequest): Promise<any> => 
   });
   
   return await apiCall(`/v1/alarm/test?${params.toString()}`);
+};
+
+// 크롤링 관리 API 함수들
+import { CrawlingJob, SeedPerformance, CrawledPerformance, CrawlingSite } from '@/types/crawling';
+
+// 크롤링 작업 목록 조회
+export const fetchCrawlingJobs = async (page: number = 0, size: number = 10): Promise<CrawlingJob[]> => {
+  return await apiCall<CrawlingJob[]>(`/admin/crawling/jobs?page=${page}&size=${size}`);
+};
+
+// 시드 공연 목록 조회
+export const fetchSeedPerformances = async (site: CrawlingSite, page: number = 0, size: number = 3): Promise<SeedPerformance[]> => {
+  return await apiCall<SeedPerformance[]>(`/admin/crawling/seed-performances?site=${site}&page=${page}&size=${size}`);
+};
+
+// 크롤링된 공연 목록 조회
+export const fetchCrawledPerformances = async (site: CrawlingSite, page: number = 0, size: number = 3): Promise<CrawledPerformance[]> => {
+  return await apiCall<CrawledPerformance[]>(`/admin/crawling/crawled-performances?site=${site}&page=${page}&size=${size}`);
 }; 
