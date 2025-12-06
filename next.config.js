@@ -48,6 +48,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'www.sangsangmadang.com'
+      },
+      {
+        protocol: 'https',
+        hostname: 'ticket.melon.com'
       }
     ],
     // 이미지 최적화 설정
