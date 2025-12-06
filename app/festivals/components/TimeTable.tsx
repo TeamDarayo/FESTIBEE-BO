@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { TimeTable as TimeTableType } from '@/types/festival';
 import { format } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,6 +50,7 @@ export default function TimeTable({
   onRefresh
 }: TimeTableProps) {
   const { isAuthenticated } = useAuth();
+  const [isPortalReady, setIsPortalReady] = useState(false);
   const [isAddingTimeTable, setIsAddingTimeTable] = useState(false);
   const [isEditingArtists, setIsEditingArtists] = useState(false);
   const [selectedTimeTable, setSelectedTimeTable] = useState<TimeTableType | null>(null);
@@ -86,6 +88,10 @@ export default function TimeTable({
     hallId: undefined,
     artists: []
   });
+
+  useEffect(() => {
+    setIsPortalReady(true);
+  }, []);
 
   // availableHalls가 변경되면 localHalls 업데이트
   useEffect(() => {
@@ -543,88 +549,189 @@ export default function TimeTable({
     }
   };
 
-  if (timeTablesByDate.length === 0 && !isAddingTimeTable) {
-    return (
-      <div className="w-full max-w-7xl mx-auto p-4">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">공연 타임테이블</h2>
-        
-        {/* 장소 정보 표시 */}
-        {localHalls.length > 0 && (
-          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-sm text-blue-700">
-              <span className="font-medium">장소:</span> {localHalls.map(hall => hall.name).join(', ')}
-            </p>
-          </div>
-        )}
-        
-        {/* 빈 타임테이블 표시 */}
-        <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg mb-6">
-          <div className="mb-4">
-            <h3 className="text-lg font-medium text-gray-700 mb-2">타임테이블 정보가 없습니다.</h3>
-            {localHalls.length > 0 && (
-              <div className="text-sm text-gray-600">
-                <p>이 장소의 홀: {localHalls.map(hall => hall.name).join(', ')}</p>
+  const modals = isPortalReady
+    ? createPortal(
+        <>
+          {isDateEditModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 className="text-lg font-medium mb-4">날짜 수정</h3>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    새로운 날짜
+                  </label>
+                  <Input 
+                    type="date" 
+                    value={newDate}
+                    onChange={(e) => setNewDate(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    이 날짜의 모든 시간표가 새 날짜로 변경됩니다.
+                  </p>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button onClick={handleSaveDateEdit}>확인</Button>
+                  <Button variant="outline" onClick={() => setIsDateEditModalOpen(false)}>취소</Button>
+                </div>
               </div>
-            )}
-          </div>
-          {showManageButtons && (
-            <div className="mt-4 space-x-2">
-              <Button size="sm" onClick={handleAddTimeTableClick}>
-                타임테이블 추가
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleAddDate}>
-                날짜 추가
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleAddHall}>
-                홀 추가
-              </Button>
             </div>
           )}
-        </div>
-        
-        {/* 빈 시간대 테이블 표시 */}
-        <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-50">
-                <TableHead className="w-[100px] font-semibold text-gray-700">시간</TableHead>
-                {halls.map(([hallId, hallName]) => (
-                  <TableHead 
-                    key={hallId} 
-                    className="font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => showManageButtons && handleEditHall({ id: hallId, name: hallName })}
-                  >
-                    {hallName}
-                  </TableHead>
-                ))}
-                {showManageButtons && (
-                  <TableHead className="w-[60px]">
-                    <Button size="sm" variant="ghost" onClick={handleAddHall} className="h-8 w-8 p-0">
-                      <span className="text-xl text-blue-600">+</span>
-                    </Button>
-                  </TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTimeSlots.map((time) => (
-                <TableRow key={time} className="hover:bg-gray-50">
-                  <TableCell className="font-medium text-gray-600">{time}</TableCell>
-                  {halls.map(([hallId]) => (
-                    <TableCell key={hallId} className="text-gray-400">-</TableCell>
-                  ))}
-                  {showManageButtons && <TableCell />}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-    );
-  }
+
+          {isAddDateModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 className="text-lg font-medium mb-4">날짜 추가</h3>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    추가할 날짜
+                  </label>
+                  <Input 
+                    type="date" 
+                    value={addingNewDate}
+                    onChange={(e) => setAddingNewDate(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    새 날짜에 기본 시간표가 생성됩니다.
+                  </p>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button onClick={handleSaveNewDate}>확인</Button>
+                  <Button variant="outline" onClick={() => setIsAddDateModalOpen(false)}>취소</Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isHallEditModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 className="text-lg font-medium mb-4">홀 이름 수정</h3>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    새로운 홀 이름
+                  </label>
+                  <Input 
+                    type="text" 
+                    value={newHallName}
+                    onChange={(e) => setNewHallName(e.target.value)}
+                    placeholder="홀 이름 입력"
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button onClick={handleSaveHallEdit}>확인</Button>
+                  <Button variant="outline" onClick={() => setIsHallEditModalOpen(false)}>취소</Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isAddHallModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 className="text-lg font-medium mb-4">홀 추가</h3>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    홀 이름
+                  </label>
+                  <Input 
+                    type="text" 
+                    value={addingHallName}
+                    onChange={(e) => setAddingHallName(e.target.value)}
+                    placeholder="홀 이름 입력"
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button onClick={handleSaveNewHall}>확인</Button>
+                  <Button variant="outline" onClick={() => setIsAddHallModalOpen(false)}>취소</Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>,
+        document.body
+      )
+    : null;
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4">
+      {timeTablesByDate.length === 0 && !isAddingTimeTable ? (
+        <>
+          <h2 className="text-2xl font-bold mb-6 text-gray-800">공연 타임테이블</h2>
+          
+          {/* 장소 정보 표시 */}
+          {localHalls.length > 0 && (
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-700">
+                <span className="font-medium">장소:</span> {localHalls.map(hall => hall.name).join(', ')}
+              </p>
+            </div>
+          )}
+          
+          {/* 빈 타임테이블 표시 */}
+          <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg mb-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-medium text-gray-700 mb-2">타임테이블 정보가 없습니다.</h3>
+              {localHalls.length > 0 && (
+                <div className="text-sm text-gray-600">
+                  <p>이 장소의 홀: {localHalls.map(hall => hall.name).join(', ')}</p>
+                </div>
+              )}
+            </div>
+            {showManageButtons && (
+              <div className="mt-4 space-x-2">
+                <Button size="sm" onClick={handleAddTimeTableClick}>
+                  타임테이블 추가
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleAddDate}>
+                  날짜 추가
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleAddHall}>
+                  홀 추가
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          {/* 빈 시간대 테이블 표시 */}
+          <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="w-[100px] font-semibold text-gray-700">시간</TableHead>
+                  {halls.map(([hallId, hallName]) => (
+                    <TableHead 
+                      key={hallId} 
+                      className="font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => showManageButtons && handleEditHall({ id: hallId, name: hallName })}
+                    >
+                      {hallName}
+                    </TableHead>
+                  ))}
+                  {showManageButtons && (
+                    <TableHead className="w-[60px]">
+                      <Button size="sm" variant="ghost" onClick={handleAddHall} className="h-8 w-8 p-0">
+                        <span className="text-xl text-blue-600">+</span>
+                      </Button>
+                    </TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTimeSlots.map((time) => (
+                  <TableRow key={time} className="hover:bg-gray-50">
+                    <TableCell className="font-medium text-gray-600">{time}</TableCell>
+                    {halls.map(([hallId]) => (
+                      <TableCell key={hallId} className="text-gray-400">-</TableCell>
+                    ))}
+                    {showManageButtons && <TableCell />}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      ) : (
+        <>
       <h2 className="text-2xl font-bold mb-6 text-gray-800">공연 타임테이블</h2>
       
       {/* 장소 정보 표시 */}
@@ -984,106 +1091,10 @@ export default function TimeTable({
           </div>
         </div>
       )}
-
-      {/* 날짜 수정 모달 */}
-      {isDateEditModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-medium mb-4">날짜 수정</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                새로운 날짜
-              </label>
-              <Input 
-                type="date" 
-                value={newDate}
-                onChange={(e) => setNewDate(e.target.value)}
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                이 날짜의 모든 시간표가 새 날짜로 변경됩니다.
-              </p>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button onClick={handleSaveDateEdit}>확인</Button>
-              <Button variant="outline" onClick={() => setIsDateEditModalOpen(false)}>취소</Button>
-            </div>
-          </div>
-        </div>
+        </>
       )}
 
-      {/* 날짜 추가 모달 */}
-      {isAddDateModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-medium mb-4">날짜 추가</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                추가할 날짜
-              </label>
-              <Input 
-                type="date" 
-                value={addingNewDate}
-                onChange={(e) => setAddingNewDate(e.target.value)}
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                새 날짜에 기본 시간표가 생성됩니다.
-              </p>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button onClick={handleSaveNewDate}>확인</Button>
-              <Button variant="outline" onClick={() => setIsAddDateModalOpen(false)}>취소</Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 홀 수정 모달 */}
-      {isHallEditModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-medium mb-4">홀 이름 수정</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                새로운 홀 이름
-              </label>
-              <Input 
-                type="text" 
-                value={newHallName}
-                onChange={(e) => setNewHallName(e.target.value)}
-                placeholder="홀 이름 입력"
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button onClick={handleSaveHallEdit}>확인</Button>
-              <Button variant="outline" onClick={() => setIsHallEditModalOpen(false)}>취소</Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 홀 추가 모달 */}
-      {isAddHallModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-medium mb-4">홀 추가</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                홀 이름
-              </label>
-              <Input 
-                type="text" 
-                value={addingHallName}
-                onChange={(e) => setAddingHallName(e.target.value)}
-                placeholder="홀 이름 입력"
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button onClick={handleSaveNewHall}>확인</Button>
-              <Button variant="outline" onClick={() => setIsAddHallModalOpen(false)}>취소</Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {modals}
     </div>
   );
 }
