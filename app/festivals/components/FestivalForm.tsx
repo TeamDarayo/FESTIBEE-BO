@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PlaceForm from './PlaceForm';
-import PasswordModal from '@/components/PasswordModal';
+import { useAuth } from '@/contexts/AuthContext';
 import React from 'react';
 
 interface FestivalFormProps {
@@ -37,17 +37,11 @@ const getInitialFormData = (initialData?: Festival): Omit<Festival, 'id'> => ({
 });
 
 export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, isReadOnly, hideTimeTableAndReservation }: FestivalFormProps) {
+  const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState<Omit<Festival, 'id'>>(() => getInitialFormData(initialData));
   const [places, setPlaces] = useState<Place[]>([]);
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
   const [isPlaceFormOpen, setIsPlaceFormOpen] = useState(false);
-  
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [pendingPlaceData, setPendingPlaceData] = useState<PlaceRequestBody | null>(null);
-  
-  // 타임테이블 추가를 위한 비밀번호 모달 상태
-  const [isTimeTablePasswordModalOpen, setIsTimeTablePasswordModalOpen] = useState(false);
-  const [pendingTimeTableData, setPendingTimeTableData] = useState<any>(null);
   
   const [newTimeTable, setNewTimeTable] = useState<Omit<TimeTable, 'id'>>({
     performanceDate: '',
@@ -127,10 +121,6 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
       setShowAddReservationForm(false);
       setShowReservationSection(false);
       setIsPlaceFormOpen(false);
-      setIsPasswordModalOpen(false);
-      setIsTimeTablePasswordModalOpen(false);
-      setPendingPlaceData(null);
-      setPendingTimeTableData(null);
     }
   }, [initialData, isOpen]);
 
@@ -177,22 +167,18 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
   };
   
   const handleCreatePlace = async (placeData: PlaceRequestBody) => {
-    setPendingPlaceData(placeData);
-    setIsPasswordModalOpen(true);
-  };
-  
-  const handlePasswordConfirmForPlace = async (password: string) => {
-    if (!pendingPlaceData) return;
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
+
     try {
-      await createPlace(pendingPlaceData);
+      await createPlace(placeData);
       alert('장소가 성공적으로 추가되었습니다.');
       setIsPlaceFormOpen(false);
       await loadPlaces();
     } catch (error: any) {
       alert(`장소 추가 오류: ${error.message}`);
-    } finally {
-      setIsPasswordModalOpen(false);
-      setPendingPlaceData(null);
     }
   };
 
@@ -208,7 +194,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleAddTimeTable = () => {
+  const handleAddTimeTable = async () => {
     if (!newTimeTable.performanceDate || !newTimeTable.startTime || !newTimeTable.endTime) {
       alert('타임테이블의 날짜와 시간을 모두 입력해주세요.');
       return;
@@ -231,24 +217,21 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
     console.log('Available halls:', selectedPlace?.halls);
 
     // 타임테이블 데이터를 저장하고 비밀번호 모달 열기
-    setPendingTimeTableData({
-      performanceDate: newTimeTable.performanceDate,
-      startTime: newTimeTable.startTime,
-      endTime: newTimeTable.endTime,
-      hallId: newTimeTable.hallId,
-    });
-    setIsTimeTablePasswordModalOpen(true);
-  };
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
 
-  const handleTimeTablePasswordConfirm = async (password: string) => {
-    if (!pendingTimeTableData || !initialData?.id) return;
-    
+    if (!initialData?.id) {
+      alert('페스티벌을 먼저 저장해야 타임테이블을 추가할 수 있습니다.');
+      return;
+    }
+
     // 시간 형식을 HH:mm으로 변환
     const formatTime = (time: string) => {
       if (time.includes(':')) {
-        return time; // 이미 HH:mm 형식인 경우
+        return time;
       }
-      // HHmm 형식인 경우 HH:mm으로 변환
       if (time.length === 4) {
         return `${time.slice(0, 2)}:${time.slice(2)}`;
       }
@@ -256,21 +239,14 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
     };
     
     const formattedData = {
-      performanceDate: pendingTimeTableData.performanceDate,
-      startTime: formatTime(pendingTimeTableData.startTime),
-      endTime: formatTime(pendingTimeTableData.endTime),
-      hallId: pendingTimeTableData.hallId,
-      password: password,
+      performanceDate: newTimeTable.performanceDate,
+      startTime: formatTime(newTimeTable.startTime),
+      endTime: formatTime(newTimeTable.endTime),
+      hallId: newTimeTable.hallId,
     };
-    
-    // 디버깅을 위한 로깅
-    console.log('Performance ID:', initialData.id);
-    console.log('Original TimeTable Data:', pendingTimeTableData);
-    console.log('Formatted TimeTable Data:', formattedData);
     
     try {
       await addTimeTable(initialData.id, formattedData);
-      
       alert('타임테이블이 성공적으로 추가되었습니다.');
       
       // 로컬 상태에 추가
@@ -283,7 +259,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
         }],
       }));
 
-      // 입력 필드 초기화 (페스티벌의 첫날짜를 기본값으로 설정)
+      // 입력 필드 초기화
       setNewTimeTable({
         performanceDate: initialData.startDate || '',
         startTime: '',
@@ -292,21 +268,9 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
         artists: [],
       });
     } catch (error: any) {
-      let errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
-      if (error.message && error.message.includes('401')) {
-        errorMessage = '비밀번호를 확인해주세요.';
-      }
-      alert(`오류: ${errorMessage}`);
+      alert(`오류: ${error.message || '타임테이블 추가에 실패했습니다.'}`);
       console.error('API Error:', error);
-    } finally {
-      setIsTimeTablePasswordModalOpen(false);
-      setPendingTimeTableData(null);
     }
-  };
-
-  const handleTimeTablePasswordCancel = () => {
-    setIsTimeTablePasswordModalOpen(false);
-    setPendingTimeTableData(null);
   };
 
   const handleAddArtistToTimeTable = (timeTableId: string) => {
@@ -674,20 +638,6 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
         isOpen={isPlaceFormOpen}
         onCancel={() => setIsPlaceFormOpen(false)}
         onSubmit={handleCreatePlace}
-      />
-      <PasswordModal 
-        isOpen={isPasswordModalOpen}
-        onCancel={() => setIsPasswordModalOpen(false)}
-        onConfirm={handlePasswordConfirmForPlace}
-        title="장소 추가"
-        message="새 장소를 추가하려면 관리자 비밀번호를 입력해주세요."
-      />
-      <PasswordModal 
-        isOpen={isTimeTablePasswordModalOpen}
-        onCancel={handleTimeTablePasswordCancel}
-        onConfirm={handleTimeTablePasswordConfirm}
-        title="타임테이블 추가"
-        message="새 타임테이블을 추가하려면 관리자 비밀번호를 입력해주세요."
       />
     </div>
   );

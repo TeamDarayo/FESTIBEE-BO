@@ -44,6 +44,23 @@ const getApiBaseUrl = () => {
   // return 'https://darayo-festival.shop';
 };
 
+// 세션에서 저장된 관리자 비밀번호 가져오기
+export const getStoredPassword = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return sessionStorage.getItem('admin-password');
+  }
+  return null;
+};
+
+// 비밀번호 가져오기 (명시적 비밀번호 우선, 없으면 저장된 비밀번호)
+export const getPassword = (explicitPassword?: string): string => {
+  const password = explicitPassword || getStoredPassword();
+  if (!password) {
+    throw new Error('관리자 비밀번호가 필요합니다. 먼저 로그인해주세요.');
+  }
+  return password;
+};
+
 // Helper function for API calls
 async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const baseUrl = getApiBaseUrl();
@@ -106,11 +123,11 @@ export const fetchArtistById = async (id: number): Promise<Artist> => {
   return await apiCall<Artist>(`/api/admin/artist/${id}`);
 };
 
-export const createArtist = async (artist: Omit<Artist, 'id'>, password: string): Promise<Artist> => {
+export const createArtist = async (artist: Omit<Artist, 'id'>, password?: string): Promise<Artist> => {
   return await apiCall<Artist>('/api/admin/artist', {
     method: 'POST',
     body: JSON.stringify({
-      password: password,
+      password: getPassword(password),
       name: artist.name,
       description: artist.description,
       imageUrl: artist.imageUrl || null,
@@ -119,21 +136,21 @@ export const createArtist = async (artist: Omit<Artist, 'id'>, password: string)
   });
 };
 
-export const updateArtist = async (id: number, artistUpdate: Partial<Artist>, password: string): Promise<Artist> => {
+export const updateArtist = async (id: number, artistUpdate: Partial<Artist>, password?: string): Promise<Artist> => {
   return await apiCall<Artist>(`/api/admin/artist/${id}`, {
     method: 'PUT',
     body: JSON.stringify({
-      password: password,
+      password: getPassword(password),
       ...artistUpdate
     }),
   });
 };
 
-export const deleteArtist = async (id: number, password: string): Promise<void> => {
+export const deleteArtist = async (id: number, password?: string): Promise<void> => {
   return await apiCall(`/api/admin/artist/${id}`, {
     method: 'DELETE',
     headers: {
-      'X-Admin-Password': password,
+      'X-Admin-Password': getPassword(password),
     },
   });
 };
@@ -145,11 +162,11 @@ export const updateArtistAlias = async (aliasId: number, alias: string): Promise
   });
 };
 
-export const addArtistAliases = async (artistId: number, aliases: string[], password: string): Promise<ArtistAlias[]> => {
+export const addArtistAliases = async (artistId: number, aliases: string[], password?: string): Promise<ArtistAlias[]> => {
   return await apiCall<ArtistAlias[]>('/api/admin/artist/aliases', {
     method: 'POST',
     body: JSON.stringify({
-      password: password,
+      password: getPassword(password),
       artistId: artistId,
       aliases: aliases
     }),
@@ -420,8 +437,8 @@ function convertToRequestFormat(festivalData: any, password: string): FestivalCr
   return result;
 }
 
-export const createFestival = async (festival: Omit<Festival, 'id'>, password: string): Promise<void> => {
-  const requestData = convertToRequestFormat(festival, password);
+export const createFestival = async (festival: Omit<Festival, 'id'>, password?: string): Promise<void> => {
+  const requestData = convertToRequestFormat(festival, getPassword(password));
   await apiCall('/api/admin/performance', {
     method: 'POST',
     body: JSON.stringify(requestData),
@@ -459,27 +476,27 @@ export const updateTimeTable = async (
     endTime: string; 
     hallId: number | null;
   },
-  password: string
+  password?: string
 ): Promise<TimeTableResponse> => {
   return await apiCall<TimeTableResponse>(`/api/admin/performance/${performanceId}/timetable/${timetableId}`, {
     method: 'PUT',
     headers: {
-      'X-Admin-Password': password,
+      'X-Admin-Password': getPassword(password),
     },
     body: JSON.stringify(updateData),
   });
 };
 
-export const deleteTimeTable = async (performanceId: number, timeTableId: number, password: string): Promise<void> => {
+export const deleteTimeTable = async (performanceId: number, timeTableId: number, password?: string): Promise<void> => {
   return await apiCall(`/api/admin/performance/${performanceId}/timetable/${timeTableId}`, {
     method: 'DELETE',
     headers: {
-      'X-Admin-Password': password,
+      'X-Admin-Password': getPassword(password),
     },
   });
 };
 
-export const updateFestival = async (id: number, festivalUpdate: Partial<Festival>, password: string): Promise<void> => {
+export const updateFestival = async (id: number, festivalUpdate: Partial<Festival>, password?: string): Promise<void> => {
   // performance 정보만 추출하여 전송
   const performanceData = {
     id,
@@ -526,7 +543,7 @@ export const deleteFestival = async (id: number): Promise<void> => {
   });
 };
 
-export const updateReservationInfos = async (performanceId: number, reservationInfos: ReservationInfo[], password: string): Promise<void> => {
+export const updateReservationInfos = async (performanceId: number, reservationInfos: ReservationInfo[], password?: string): Promise<void> => {
   // 서버의 List<EditReservationInfoReq> 구조에 맞게 변환
   // reservationInfos에는 수정된 항목과 수정되지 않은 기존 항목들이 모두 포함됨
   const reservationInfosForServer = reservationInfos.map(ri => {
@@ -571,33 +588,34 @@ export const createPlace = async (placeData: PlaceRequestBody): Promise<Place> =
   });
 };
 
-export const updatePlace = async (id: number, placeData: PlaceRequestBody, password: string): Promise<Place> => {
+export const updatePlace = async (id: number, placeData: PlaceRequestBody, password?: string): Promise<Place> => {
   return await apiCall<Place>(`/api/admin/place/${id}`, {
     method: 'PUT',
     body: JSON.stringify({
-      password: password,
+      password: getPassword(password),
       ...placeData
     }),
   });
 };
 
-export const updateHall = async (hallId: number, hallData: { name: string }, password: string): Promise<Hall> => {
+export const updateHall = async (hallId: number, hallData: { name: string }, password?: string): Promise<Hall> => {
   return await apiCall<Hall>(`/api/admin/place/hall/${hallId}`, {
     method: 'PUT',
     body: JSON.stringify({
-      password: password,
+      password: getPassword(password),
       ...hallData
     }),
   });
 };
 
-export const addHalls = async (placeId: number, hallNames: string[], password: string): Promise<Hall[]> => {
+export const addHalls = async (placeId: number, hallNames: string[], password?: string): Promise<Hall[]> => {
+  const actualPassword = getPassword(password);
   const results: Hall[] = [];
   for (const name of hallNames) {
     const hall = await apiCall<Hall>(`/api/admin/place/${placeId}/hall`, {
       method: 'POST',
       body: JSON.stringify({
-        password: password,
+        password: actualPassword,
         name: name
       }),
     });
@@ -606,11 +624,11 @@ export const addHalls = async (placeId: number, hallNames: string[], password: s
   return results;
 };
 
-export const deletePlace = async (id: number, password: string): Promise<void> => {
+export const deletePlace = async (id: number, password?: string): Promise<void> => {
   return await apiCall(`/api/admin/place/${id}`, {
     method: 'DELETE',
     headers: {
-      'X-Admin-Password': password,
+      'X-Admin-Password': getPassword(password),
     },
   });
 };

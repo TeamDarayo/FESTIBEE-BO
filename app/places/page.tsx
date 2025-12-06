@@ -6,29 +6,18 @@ import { Place, PlaceRequestBody } from '@/types/place';
 import PlaceForm from './components/PlaceForm';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from '@/components/ui/table';
-import PasswordModal from '@/components/PasswordModal';
+import { useAuth } from '@/contexts/AuthContext';
 import React from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiEye } from 'react-icons/fi';
 
 export default function PlacesPage() {
+  const { isAuthenticated } = useAuth();
   const [places, setPlaces] = useState<Place[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPlace, setEditingPlace] = useState<Place | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
-  
-  // 비밀번호 모달 상태
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<{
-    type: 'create' | 'update' | 'delete' | 'editHall' | 'addHalls';
-    data?: any;
-    id?: number;
-    hallId?: number;
-    hallName?: string;
-    hallNames?: string[];
-    hallChanges?: { edits: Array<{id: number, name: string}>, adds: string[] };
-  } | null>(null);
 
   useEffect(() => {
     loadPlaces();
@@ -48,109 +37,107 @@ export default function PlacesPage() {
   };
 
   const handleCreatePlace = async (placeData: PlaceRequestBody) => {
-    setPendingAction({ type: 'create', data: placeData });
-    setIsPasswordModalOpen(true);
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
+
+    try {
+      await createPlace(placeData);
+      alert('장소가 성공적으로 추가되었습니다.');
+      await loadPlaces();
+      setIsFormOpen(false);
+    } catch (err: any) {
+      console.error('Error creating place:', err);
+      alert(err.message || '장소 추가에 실패했습니다.');
+    }
   };
 
   const handleUpdatePlace = async (placeData: PlaceRequestBody, hallChanges?: { edits: Array<{id: number, name: string}>, adds: string[] }) => {
     if (!editingPlace) return;
-    setPendingAction({ type: 'update', data: placeData, id: editingPlace.id, hallChanges });
-    setIsPasswordModalOpen(true);
-  };
-
-  const handleDeletePlace = async (id: number) => {
-    setPendingAction({ type: 'delete', id });
-    setIsPasswordModalOpen(true);
-  };
-
-  const handleEditHall = async (hallId: number, newName: string) => {
-    setPendingAction({ type: 'editHall', hallId, hallName: newName });
-    setIsPasswordModalOpen(true);
-  };
-
-  const handleAddHalls = async (placeId: number, hallNames: string[]) => {
-    setPendingAction({ type: 'addHalls', id: placeId, hallNames });
-    setIsPasswordModalOpen(true);
-  };
-
-  const handlePasswordConfirm = async (password: string) => {
-    if (!pendingAction) return;
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
 
     try {
-      switch (pendingAction.type) {
-        case 'create':
-          await createPlace(pendingAction.data);
-          alert('장소가 성공적으로 추가되었습니다.');
-          break;
-        case 'update':
-          if (pendingAction.id) {
-            await updatePlace(pendingAction.id, pendingAction.data, password);
-            
-            // 홀 변경사항 처리
-            if (pendingAction.hallChanges) {
-              const { edits, adds } = pendingAction.hallChanges;
-              
-              // 홀 수정
-              for (const edit of edits) {
-                await updateHall(edit.id, { name: edit.name }, password);
-              }
-              
-              // 홀 추가
-              if (adds.length > 0) {
-                await addHalls(pendingAction.id, adds, password);
-              }
-            }
-            
-            alert('장소가 성공적으로 수정되었습니다.');
-          }
-          break;
-        case 'delete':
-          if (pendingAction.id) {
-            await deletePlace(pendingAction.id, password);
-            alert('장소가 성공적으로 삭제되었습니다.');
-          }
-          break;
-        case 'editHall':
-          if (pendingAction.hallId && pendingAction.hallName) {
-            await updateHall(pendingAction.hallId, { name: pendingAction.hallName }, password);
-            alert('홀이 성공적으로 수정되었습니다.');
-          }
-          break;
-        case 'addHalls':
-          if (pendingAction.id && pendingAction.hallNames) {
-            await addHalls(pendingAction.id, pendingAction.hallNames, password);
-            alert('홀이 성공적으로 추가되었습니다.');
-          }
-          break;
+      await updatePlace(editingPlace.id, placeData);
+      
+      // 홀 변경사항 처리
+      if (hallChanges) {
+        const { edits, adds } = hallChanges;
+        
+        // 홀 수정
+        for (const edit of edits) {
+          await updateHall(edit.id, { name: edit.name });
+        }
+        
+        // 홀 추가
+        if (adds.length > 0) {
+          await addHalls(editingPlace.id, adds);
+        }
       }
       
+      alert('장소가 성공적으로 수정되었습니다.');
       await loadPlaces();
-      setEditingPlace(null);
       setIsFormOpen(false);
-    } catch (error: any) {
-      let errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
-      console.error('Full API Error:', error);
-      
-      if (error.message && (
-        error.message.includes('401') || 
-        error.message.includes('Unauthorized') ||
-        error.message.includes('비밀번호') ||
-        error.message.includes('password')
-      )) {
-        errorMessage = '비밀번호를 확인해주세요.';
-        alert(`오류: ${errorMessage}`);
-        return;
-      }
-      alert(`오류: ${errorMessage}`);
-    } finally {
-      setIsPasswordModalOpen(false);
-      setPendingAction(null);
+      setEditingPlace(null);
+    } catch (err: any) {
+      console.error('Error updating place:', err);
+      alert(err.message || '장소 수정에 실패했습니다.');
     }
   };
 
-  const handlePasswordCancel = () => {
-    setIsPasswordModalOpen(false);
-    setPendingAction(null);
+  const handleDeletePlace = async (id: number) => {
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
+
+    if (!confirm('정말로 이 장소를 삭제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      await deletePlace(id);
+      alert('장소가 성공적으로 삭제되었습니다.');
+      await loadPlaces();
+    } catch (err: any) {
+      console.error('Error deleting place:', err);
+      alert(err.message || '장소 삭제에 실패했습니다.');
+    }
+  };
+
+  const handleEditHall = async (hallId: number, newName: string) => {
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
+
+    try {
+      await updateHall(hallId, { name: newName });
+      alert('홀이 성공적으로 수정되었습니다.');
+      await loadPlaces();
+    } catch (err: any) {
+      console.error('Error updating hall:', err);
+      alert(err.message || '홀 수정에 실패했습니다.');
+    }
+  };
+
+  const handleAddHalls = async (placeId: number, hallNames: string[]) => {
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
+
+    try {
+      await addHalls(placeId, hallNames);
+      alert('홀이 성공적으로 추가되었습니다.');
+      await loadPlaces();
+    } catch (err: any) {
+      console.error('Error adding halls:', err);
+      alert(err.message || '홀 추가에 실패했습니다.');
+    }
   };
 
   const handleEdit = (place: Place) => {
@@ -171,29 +158,6 @@ export default function PlacesPage() {
     setSelectedPlace(null);
   };
 
-  const getPasswordModalTitle = () => {
-    if (!pendingAction) return '';
-    switch (pendingAction.type) {
-      case 'create': return '장소 추가';
-      case 'update': return '장소 수정';
-      case 'delete': return '장소 삭제';
-      case 'editHall': return '홀 수정';
-      case 'addHalls': return '홀 추가';
-      default: return '관리자 인증';
-    }
-  };
-
-  const getPasswordModalMessage = () => {
-    if (!pendingAction) return '';
-    switch (pendingAction.type) {
-      case 'create': return '새 장소를 추가하기 위해 관리자 비밀번호를 입력해주세요.';
-      case 'update': return '장소를 수정하기 위해 관리자 비밀번호를 입력해주세요.';
-      case 'delete': return '장소를 삭제하기 위해 관리자 비밀번호를 입력해주세요.';
-      case 'editHall': return '홀을 수정하기 위해 관리자 비밀번호를 입력해주세요.';
-      case 'addHalls': return '홀을 추가하기 위해 관리자 비밀번호를 입력해주세요.';
-      default: return '관리자 비밀번호를 입력해주세요.';
-    }
-  };
 
   if (isLoading) {
     return (
@@ -355,14 +319,6 @@ export default function PlacesPage() {
         onEditHall={handleEditHall}
         onAddHalls={handleAddHalls}
         initialData={editingPlace || undefined}
-      />
-
-      <PasswordModal
-        isOpen={isPasswordModalOpen}
-        onConfirm={handlePasswordConfirm}
-        onCancel={handlePasswordCancel}
-        title={getPasswordModalTitle()}
-        message={getPasswordModalMessage()}
       />
     </div>
   );

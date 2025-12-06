@@ -14,7 +14,7 @@ import {
   addHalls,
   updateHall
 } from '@/lib/api';
-import PasswordModal from '@/components/PasswordModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Artist {
   id: number;
@@ -48,6 +48,7 @@ export default function TimeTable({
   placeId,
   onRefresh
 }: TimeTableProps) {
+  const { isAuthenticated } = useAuth();
   const [isAddingTimeTable, setIsAddingTimeTable] = useState(false);
   const [isEditingArtists, setIsEditingArtists] = useState(false);
   const [selectedTimeTable, setSelectedTimeTable] = useState<TimeTableType | null>(null);
@@ -61,8 +62,6 @@ export default function TimeTable({
   const [isDateEditModalOpen, setIsDateEditModalOpen] = useState(false);
   const [editingDate, setEditingDate] = useState<string | null>(null);
   const [newDate, setNewDate] = useState('');
-  const [isDatePasswordModalOpen, setIsDatePasswordModalOpen] = useState(false);
-  const [pendingDateChange, setPendingDateChange] = useState<{ oldDate: string; newDate: string } | null>(null);
   
   // 날짜 추가 모달
   const [isAddDateModalOpen, setIsAddDateModalOpen] = useState(false);
@@ -72,14 +71,10 @@ export default function TimeTable({
   const [isHallEditModalOpen, setIsHallEditModalOpen] = useState(false);
   const [editingHall, setEditingHall] = useState<{ id: number; name: string } | null>(null);
   const [newHallName, setNewHallName] = useState('');
-  const [isHallPasswordModalOpen, setIsHallPasswordModalOpen] = useState(false);
-  const [pendingHallChange, setPendingHallChange] = useState<{ id: number; name: string } | null>(null);
   
   // 홀 추가 모달
   const [isAddHallModalOpen, setIsAddHallModalOpen] = useState(false);
   const [addingHallName, setAddingHallName] = useState('');
-  const [isAddHallPasswordModalOpen, setIsAddHallPasswordModalOpen] = useState(false);
-  const [pendingHallAdd, setPendingHallAdd] = useState<string | null>(null);
   
   // 로컬 홀 상태 (동적으로 관리)
   const [localHalls, setLocalHalls] = useState<{ id: number; name: string }[]>(availableHalls);
@@ -395,38 +390,39 @@ export default function TimeTable({
     setIsDateEditModalOpen(true);
   };
 
-  const handleSaveDateEdit = () => {
+  const handleSaveDateEdit = async () => {
     if (!newDate || !editingDate) return;
     if (newDate === editingDate) {
       setIsDateEditModalOpen(false);
       return;
     }
     
-    setPendingDateChange({ oldDate: editingDate, newDate });
-    setIsDateEditModalOpen(false);
-    setIsDatePasswordModalOpen(true);
-  };
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
 
-  const handleDatePasswordConfirm = async (password: string) => {
-    if (!pendingDateChange || !performanceId) return;
+    if (!performanceId) return;
 
     try {
       // 해당 날짜의 모든 시간표 찾기
-      const timeTablesForDate = timeTables.filter(tt => tt.performanceDate === pendingDateChange.oldDate);
+      const timeTablesForDate = timeTables.filter(tt => tt.performanceDate === editingDate);
       
-      // 각 시간표의 날짜 업데이트 (모든 필드 포함)
+      // 각 시간표의 날짜 업데이트
       for (const tt of timeTablesForDate) {
         if (tt.id) {
           await updateTimeTable(performanceId, tt.id, { 
-            performanceDate: pendingDateChange.newDate,
+            performanceDate: newDate,
             startTime: tt.startTime || '00:00',
             endTime: tt.endTime || '00:00',
             hallId: tt.hallId ?? null
-          }, password);
+          });
         }
       }
 
       alert('날짜가 성공적으로 변경되었습니다.');
+      setIsDateEditModalOpen(false);
+      setEditingDate(null);
       
       if (onRefresh) {
         onRefresh();
@@ -434,10 +430,6 @@ export default function TimeTable({
     } catch (error: any) {
       console.error('날짜 변경 오류:', error);
       alert(`날짜 변경 오류: ${error.message}`);
-    } finally {
-      setIsDatePasswordModalOpen(false);
-      setPendingDateChange(null);
-      setEditingDate(null);
     }
   };
 
@@ -475,30 +467,29 @@ export default function TimeTable({
     setIsHallEditModalOpen(true);
   };
 
-  const handleSaveHallEdit = () => {
+  const handleSaveHallEdit = async () => {
     if (!newHallName || !editingHall) return;
     if (newHallName === editingHall.name) {
       setIsHallEditModalOpen(false);
       return;
     }
     
-    setPendingHallChange({ id: editingHall.id, name: newHallName });
-    setIsHallEditModalOpen(false);
-    setIsHallPasswordModalOpen(true);
-  };
-
-  const handleHallPasswordConfirm = async (password: string) => {
-    if (!pendingHallChange) return;
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
 
     try {
-      await updateHall(pendingHallChange.id, { name: pendingHallChange.name }, password);
+      await updateHall(editingHall.id, { name: newHallName });
       
       // 로컬 상태 업데이트
       setLocalHalls(prev => 
-        prev.map(h => h.id === pendingHallChange.id ? { ...h, name: pendingHallChange.name } : h)
+        prev.map(h => h.id === editingHall.id ? { ...h, name: newHallName } : h)
       );
 
       alert('홀 이름이 성공적으로 변경되었습니다.');
+      setIsHallEditModalOpen(false);
+      setEditingHall(null);
       
       if (onRefresh) {
         onRefresh();
@@ -506,10 +497,6 @@ export default function TimeTable({
     } catch (error: any) {
       console.error('홀 이름 변경 오류:', error);
       alert(`홀 이름 변경 오류: ${error.message}`);
-    } finally {
-      setIsHallPasswordModalOpen(false);
-      setPendingHallChange(null);
-      setEditingHall(null);
     }
   };
 
@@ -519,7 +506,7 @@ export default function TimeTable({
     setIsAddHallModalOpen(true);
   };
 
-  const handleSaveNewHall = () => {
+  const handleSaveNewHall = async () => {
     if (!addingHallName.trim()) {
       alert('홀 이름을 입력해주세요.');
       return;
@@ -530,16 +517,13 @@ export default function TimeTable({
       return;
     }
     
-    setPendingHallAdd(addingHallName);
-    setIsAddHallModalOpen(false);
-    setIsAddHallPasswordModalOpen(true);
-  };
-
-  const handleAddHallPasswordConfirm = async (password: string) => {
-    if (!pendingHallAdd || !placeId) return;
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
 
     try {
-      const newHalls = await addHalls(placeId, [pendingHallAdd], password);
+      const newHalls = await addHalls(placeId, [addingHallName]);
       
       // 로컬 상태에 새 홀 추가
       if (newHalls.length > 0) {
@@ -547,6 +531,8 @@ export default function TimeTable({
       }
 
       alert('홀이 성공적으로 추가되었습니다.');
+      setIsAddHallModalOpen(false);
+      setAddingHallName('');
       
       if (onRefresh) {
         onRefresh();
@@ -554,10 +540,6 @@ export default function TimeTable({
     } catch (error: any) {
       console.error('홀 추가 오류:', error);
       alert(`홀 추가 오류: ${error.message}`);
-    } finally {
-      setIsAddHallPasswordModalOpen(false);
-      setPendingHallAdd(null);
-      setAddingHallName('');
     }
   };
 
@@ -1102,40 +1084,6 @@ export default function TimeTable({
           </div>
         </div>
       )}
-
-      {/* 비밀번호 모달들 */}
-      <PasswordModal 
-        isOpen={isDatePasswordModalOpen}
-        onCancel={() => {
-          setIsDatePasswordModalOpen(false);
-          setPendingDateChange(null);
-        }}
-        onConfirm={handleDatePasswordConfirm}
-        title="날짜 변경"
-        message="날짜를 변경하려면 관리자 비밀번호를 입력해주세요."
-      />
-
-      <PasswordModal 
-        isOpen={isHallPasswordModalOpen}
-        onCancel={() => {
-          setIsHallPasswordModalOpen(false);
-          setPendingHallChange(null);
-        }}
-        onConfirm={handleHallPasswordConfirm}
-        title="홀 이름 변경"
-        message="홀 이름을 변경하려면 관리자 비밀번호를 입력해주세요."
-      />
-
-      <PasswordModal 
-        isOpen={isAddHallPasswordModalOpen}
-        onCancel={() => {
-          setIsAddHallPasswordModalOpen(false);
-          setPendingHallAdd(null);
-        }}
-        onConfirm={handleAddHallPasswordConfirm}
-        title="홀 추가"
-        message="홀을 추가하려면 관리자 비밀번호를 입력해주세요."
-      />
     </div>
   );
 }

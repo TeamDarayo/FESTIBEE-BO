@@ -6,11 +6,12 @@ import ArtistForm from './components/ArtistForm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from '@/components/ui/table';
-import PasswordModal from '@/components/PasswordModal';
+import { useAuth } from '@/contexts/AuthContext';
 import React from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiEye, FiSearch } from 'react-icons/fi';
 
 export default function ArtistsPage() {
+  const { isAuthenticated } = useAuth();
   const [artists, setArtists] = useState<Artist[]>([]);
   const [filteredArtists, setFilteredArtists] = useState<Artist[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,14 +21,6 @@ export default function ArtistsPage() {
   const [editingArtist, setEditingArtist] = useState<Artist | null>(null);
   const [selectedArtist, setSelectedArtist] = useState<Artist | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  
-  // 비밀번호 모달 상태
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<{
-    type: 'create' | 'update' | 'delete';
-    data?: any;
-    id?: number;
-  } | null>(null);
 
   useEffect(() => {
     loadArtists();
@@ -66,107 +59,90 @@ export default function ArtistsPage() {
   };
 
   const handleCreateArtist = async (artistData: Omit<Artist, 'id'>) => {
-    setPendingAction({ type: 'create', data: artistData });
-    setIsPasswordModalOpen(true);
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
+
+    try {
+      await createArtist(artistData);
+      alert('아티스트가 성공적으로 추가되었습니다.');
+      await loadArtists();
+      setIsFormOpen(false);
+      setEditingArtist(null);
+    } catch (err: any) {
+      console.error('Error creating artist:', err);
+      alert(err.message || '아티스트 추가에 실패했습니다.');
+    }
   };
 
   const handleUpdateArtist = async (artistData: Omit<Artist, 'id'>) => {
     if (!editingArtist) return;
-    setPendingAction({ type: 'update', data: artistData, id: editingArtist.id });
-    setIsPasswordModalOpen(true);
-  };
-
-  const handleDeleteArtist = async (id: number) => {
-    setPendingAction({ type: 'delete', id });
-    setIsPasswordModalOpen(true);
-  };
-
-  const handlePasswordConfirm = async (password: string) => {
-    if (!pendingAction) return;
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
 
     try {
-      switch (pendingAction.type) {
-        case 'create':
-          await createArtist(pendingAction.data, password);
-          alert('아티스트가 성공적으로 추가되었습니다.');
-          await loadArtists(); // 목록 새로고침
-          break;
-        case 'update':
-          if (pendingAction.id) {
-            // 아티스트 기본 정보 업데이트
-            await updateArtist(pendingAction.id, pendingAction.data, password);
-            
-            // 별칭 변경사항 처리
-            const originalArtist = artists.find(a => a.id === pendingAction.id);
-            if (originalArtist) {
-              const newAliases = pendingAction.data.aliases || [];
-              const originalAliases = originalArtist.aliases || [];
-              
-              // 삭제된 별칭들 찾기
-              const deletedAliases = originalAliases.filter((origAlias: ArtistAlias) => 
-                !newAliases.some((newAlias: ArtistAlias) => newAlias.name === origAlias.name)
-              );
-              
-              // 삭제된 별칭이 있으면 삭제
-              for (const deletedAlias of deletedAliases) {
-                await deleteArtistAlias(deletedAlias.id);
-              }
-              
-              // 새로 추가된 별칭들 찾기
-              const addedAliases = newAliases.filter((newAlias: ArtistAlias) => 
-                !originalAliases.some((origAlias: ArtistAlias) => origAlias.name === newAlias.name)
-              );
-              
-              // 새 별칭이 있으면 추가
-              if (addedAliases.length > 0) {
-                const aliasNames = addedAliases.map((alias: ArtistAlias) => alias.name);
-                await addArtistAliases(pendingAction.id, aliasNames, password);
-              }
-            }
-            
-            alert('아티스트가 성공적으로 수정되었습니다.');
-          }
-          break;
-        case 'delete':
-          if (pendingAction.id) {
-            await deleteArtist(pendingAction.id, password);
-            alert('아티스트가 성공적으로 삭제되었습니다.');
-          }
-          break;
+      // 아티스트 기본 정보 업데이트
+      await updateArtist(editingArtist.id, artistData);
+      
+      // 별칭 변경사항 처리
+      const originalArtist = artists.find(a => a.id === editingArtist.id);
+      if (originalArtist) {
+        const newAliases = artistData.aliases || [];
+        const originalAliases = originalArtist.aliases || [];
+        
+        // 삭제된 별칭들 찾기
+        const deletedAliases = originalAliases.filter((origAlias: ArtistAlias) => 
+          !newAliases.some((newAlias: ArtistAlias) => newAlias.name === origAlias.name)
+        );
+        
+        // 삭제된 별칭이 있으면 삭제
+        for (const deletedAlias of deletedAliases) {
+          await deleteArtistAlias(deletedAlias.id);
+        }
+        
+        // 새로 추가된 별칭들 찾기
+        const addedAliases = newAliases.filter((newAlias: ArtistAlias) => 
+          !originalAliases.some((origAlias: ArtistAlias) => origAlias.name === newAlias.name)
+        );
+        
+        // 새 별칭이 있으면 추가
+        if (addedAliases.length > 0) {
+          const aliasNames = addedAliases.map((alias: ArtistAlias) => alias.name);
+          await addArtistAliases(editingArtist.id, aliasNames);
+        }
       }
       
+      alert('아티스트가 성공적으로 수정되었습니다.');
       await loadArtists();
-      setEditingArtist(null);
       setIsFormOpen(false);
-    } catch (error: any) {
-      // 서버 에러 응답을 alert로 표시
-      let errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
-      console.error('Full API Error:', error);
-      console.error('Error message:', error.message);
-      console.error('Error status:', error.status);
-      
-      // 401 에러 감지 (다양한 형태의 401 에러 메시지 처리)
-      if (error.message && (
-        error.message.includes('401') || 
-        error.message.includes('Unauthorized') ||
-        error.message.includes('비밀번호') ||
-        error.message.includes('password')
-      )) {
-        errorMessage = '비밀번호를 확인해주세요.';
-        alert(`오류: ${errorMessage}`);
-        // 401 에러일 때는 모달을 닫지 않음
-        return;
-      }
-      alert(`오류: ${errorMessage}`);
-    } finally {
-      setIsPasswordModalOpen(false);
-      setPendingAction(null);
+      setEditingArtist(null);
+    } catch (err: any) {
+      console.error('Error updating artist:', err);
+      alert(err.message || '아티스트 수정에 실패했습니다.');
     }
   };
 
-  const handlePasswordCancel = () => {
-    setIsPasswordModalOpen(false);
-    setPendingAction(null);
+  const handleDeleteArtist = async (id: number) => {
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
+
+    if (!confirm('정말로 이 아티스트를 삭제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      await deleteArtist(id);
+      alert('아티스트가 성공적으로 삭제되었습니다.');
+      await loadArtists();
+    } catch (err: any) {
+      console.error('Error deleting artist:', err);
+      alert(err.message || '아티스트 삭제에 실패했습니다.');
+    }
   };
 
   const handleEdit = (artist: Artist) => {
@@ -210,25 +186,6 @@ export default function ArtistsPage() {
     }
   };
 
-  const getPasswordModalTitle = () => {
-    if (!pendingAction) return '';
-    switch (pendingAction.type) {
-      case 'create': return '아티스트 추가';
-      case 'update': return '아티스트 수정';
-      case 'delete': return '아티스트 삭제';
-      default: return '관리자 인증';
-    }
-  };
-
-  const getPasswordModalMessage = () => {
-    if (!pendingAction) return '';
-    switch (pendingAction.type) {
-      case 'create': return '새 아티스트를 추가하기 위해 관리자 비밀번호를 입력해주세요.';
-      case 'update': return '아티스트를 수정하기 위해 관리자 비밀번호를 입력해주세요.';
-      case 'delete': return '아티스트를 삭제하기 위해 관리자 비밀번호를 입력해주세요.';
-      default: return '관리자 비밀번호를 입력해주세요.';
-    }
-  };
 
   if (isLoading) {
     return (
@@ -454,14 +411,6 @@ export default function ArtistsPage() {
         onSubmit={editingArtist ? handleUpdateArtist : handleCreateArtist}
         onCancel={handleCloseForm}
         initialData={editingArtist || undefined}
-      />
-
-      <PasswordModal
-        isOpen={isPasswordModalOpen}
-        onConfirm={handlePasswordConfirm}
-        onCancel={handlePasswordCancel}
-        title={getPasswordModalTitle()}
-        message={getPasswordModalMessage()}
       />
 
       {/* 이미지 확대 모달 */}

@@ -10,12 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from '@/components/ui/table';
 import TimeTable from './components/TimeTable';
 import ReservationInfo from './components/ReservationInfo';
-import PasswordModal from '@/components/PasswordModal';
+import { useAuth } from '@/contexts/AuthContext';
 import React from 'react';
 import { FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { Hall } from '@/types/place';
 
 export default function FestivalsPage() {
+  const { isAuthenticated } = useAuth();
   const [festivals, setFestivals] = useState<Festival[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,14 +25,6 @@ export default function FestivalsPage() {
   const [openTimeTable, setOpenTimeTable] = useState<number | null>(null);
   const [openReservation, setOpenReservation] = useState<number | null>(null);
   const [hallsByPlaceId, setHallsByPlaceId] = useState<Record<number, Hall[]>>({});
-  
-  // 비밀번호 모달 상태
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<{
-    type: 'create' | 'update' | 'delete' | 'updateReservation' | 'updateTimeTable';
-    data?: any;
-    id?: number;
-  } | null>(null);
 
   useEffect(() => {
     loadFestivals();
@@ -81,89 +74,95 @@ export default function FestivalsPage() {
   };
 
   const handleCreateFestival = async (festivalData: Omit<Festival, 'id'>) => {
-    setPendingAction({ type: 'create', data: festivalData });
-    setIsPasswordModalOpen(true);
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
+
+    try {
+      await createFestival(festivalData);
+      alert('페스티벌이 성공적으로 추가되었습니다.');
+      await loadFestivals();
+      setIsFormOpen(false);
+      setEditingFestival(null);
+    } catch (err: any) {
+      console.error('Error creating festival:', err);
+      alert(err.message || '페스티벌 추가에 실패했습니다.');
+    }
   };
 
   const handleUpdateFestival = async (festivalData: Omit<Festival, 'id'>) => {
     if (!editingFestival) return;
-    setPendingAction({ type: 'update', data: festivalData, id: editingFestival.id });
-    setIsPasswordModalOpen(true);
-  };
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
 
-  const handleDeleteFestival = async (id: number) => {
-    setPendingAction({ type: 'delete', id });
-    setIsPasswordModalOpen(true);
-  };
-
-  const handlePasswordConfirm = async (password: string) => {
-    if (!pendingAction) return;
-    
     try {
-      switch (pendingAction.type) {
-        case 'create':
-          await createFestival(pendingAction.data, password);
-          alert('페스티벌이 성공적으로 추가되었습니다.');
-          break;
-        case 'update':
-          if (pendingAction.id) {
-            await updateFestival(pendingAction.id, pendingAction.data, password);
-            alert('페스티벌이 성공적으로 수정되었습니다.');
-          }
-          break;
-        case 'delete':
-          if (pendingAction.id) {
-            await deleteFestival(pendingAction.id);
-            alert('페스티벌이 성공적으로 삭제되었습니다.');
-          }
-          break;
-        case 'updateReservation':
-          if (pendingAction.id) {
-            await updateReservationInfos(pendingAction.id, pendingAction.data, password);
-            alert('예매정보가 성공적으로 추가되었습니다.');
-          }
-          break;
-        case 'updateTimeTable':
-          if (pendingAction.id) {
-            // 새로운 타임테이블 데이터 추출
-            const newTimeTable = pendingAction.data[pendingAction.data.length - 1]; // 마지막 항목이 새로 추가된 것
-            await addTimeTable(pendingAction.id, {
-              performanceDate: newTimeTable.performanceDate,
-              startTime: newTimeTable.startTime,
-              endTime: newTimeTable.endTime,
-              hallId: newTimeTable.hallId,
-              password: password
-            });
-            alert('타임테이블이 성공적으로 추가되었습니다.');
-            await loadFestivals();
-          }
-          break;
-      }
-      
+      await updateFestival(editingFestival.id, festivalData);
+      alert('페스티벌이 성공적으로 수정되었습니다.');
       await loadFestivals();
-      setEditingFestival(null);
       setIsFormOpen(false);
-      // 성공 후 모든 상태를 초기화
-      setOpenTimeTable(null);
-      setOpenReservation(null);
-    } catch (error: any) {
-      // 서버 에러 응답을 alert로 표시
-      let errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
-      if (error.message && error.message.includes('401')) {
-        errorMessage = '비밀번호를 확인해주세요.';
-      }
-      alert(`오류: ${errorMessage}`);
-      console.error('API Error:', error);
-    } finally {
-      setIsPasswordModalOpen(false);
-      setPendingAction(null);
+      setEditingFestival(null);
+    } catch (err: any) {
+      console.error('Error updating festival:', err);
+      alert(err.message || '페스티벌 수정에 실패했습니다.');
     }
   };
 
-  const handlePasswordCancel = () => {
-    setIsPasswordModalOpen(false);
-    setPendingAction(null);
+  const handleDeleteFestival = async (id: number) => {
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
+
+    if (!confirm('정말로 이 페스티벌을 삭제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      await deleteFestival(id);
+      alert('페스티벌이 성공적으로 삭제되었습니다.');
+      await loadFestivals();
+    } catch (err: any) {
+      console.error('Error deleting festival:', err);
+      alert(err.message || '페스티벌 삭제에 실패했습니다.');
+    }
   };
+
+  const handleUpdateReservationInfos = async (performanceId: number, reservationInfos: any) => {
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
+
+    try {
+      await updateReservationInfos(performanceId, reservationInfos);
+      alert('예매정보가 성공적으로 저장되었습니다.');
+      await loadFestivals();
+      setOpenReservation(null);
+    } catch (err: any) {
+      console.error('Error updating reservation infos:', err);
+      alert(err.message || '예매정보 저장에 실패했습니다.');
+    }
+  };
+
+  const handleAddTimeTable = async (performanceId: number, timeTableData: any) => {
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
+
+    try {
+      await addTimeTable(performanceId, timeTableData);
+      alert('타임테이블이 성공적으로 추가되었습니다.');
+      await loadFestivals();
+    } catch (err: any) {
+      console.error('Error adding timetable:', err);
+      alert(err.message || '타임테이블 추가에 실패했습니다.');
+    }
+  };
+
 
   const handleEdit = (festival: Festival) => {
     setEditingFestival(festival);
@@ -194,46 +193,47 @@ export default function FestivalsPage() {
   };
 
   const handleSaveNewReservation = async (festivalId: number, newReservation: any) => {
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
+
     try {
-      // 현재 페스티벌의 예매정보 목록을 가져옴
       const currentFestival = festivals.find(f => f.id === festivalId);
       if (!currentFestival) {
         throw new Error('페스티벌을 찾을 수 없습니다.');
       }
 
-      // 새로운 예매정보를 기존 목록에 추가 (id는 서버에서 생성됨)
       const updatedReservationInfos = [
         ...currentFestival.reservationInfos,
         newReservation
       ];
 
-      // 비밀번호 모달을 열기 위해 pendingAction 설정
-      setPendingAction({
-        type: 'updateReservation',
-        id: festivalId,
-        data: updatedReservationInfos,
-      });
-      setIsPasswordModalOpen(true);
+      await handleUpdateReservationInfos(festivalId, updatedReservationInfos);
     } catch (error: any) {
       alert(`예매정보 추가 오류: ${error.message}`);
     }
   };
 
   const handleSaveUpdatedReservations = async (festivalId: number, updatedReservations: any[]) => {
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
+
     try {
-      // 비밀번호 모달을 열기 위해 pendingAction 설정
-      setPendingAction({
-        type: 'updateReservation',
-        id: festivalId,
-        data: updatedReservations,
-      });
-      setIsPasswordModalOpen(true);
+      await handleUpdateReservationInfos(festivalId, updatedReservations);
     } catch (error: any) {
       alert(`예매정보 수정 오류: ${error.message}`);
     }
   };
 
   const handleSaveNewTimeTable = async (newTimeTable: any) => {
+    if (!isAuthenticated) {
+      alert('먼저 관리자 로그인을 해주세요.');
+      return;
+    }
+
     try {
       // 빈 객체가 전달되면 아티스트 업데이트 후 새로고침
       if (Object.keys(newTimeTable).length === 0) {
@@ -241,51 +241,19 @@ export default function FestivalsPage() {
         return;
       }
 
-      // 현재 페스티벌의 타임테이블 목록을 가져옴
       const currentFestival = festivals.find(f => f.id === openTimeTable);
       if (!currentFestival) {
         throw new Error('페스티벌을 찾을 수 없습니다.');
       }
 
-      // 새로운 타임테이블을 기존 목록에 추가 (id는 서버에서 생성됨)
-      const updatedTimeTables = [
-        ...currentFestival.timeTables,
-        newTimeTable
-      ];
-
-      // 비밀번호 모달을 열기 위해 pendingAction 설정
-      setPendingAction({
-        type: 'updateTimeTable',
-        id: currentFestival.id,
-        data: updatedTimeTables,
+      await handleAddTimeTable(currentFestival.id, {
+        performanceDate: newTimeTable.performanceDate,
+        startTime: newTimeTable.startTime,
+        endTime: newTimeTable.endTime,
+        hallId: newTimeTable.hallId,
       });
-      setIsPasswordModalOpen(true);
     } catch (error: any) {
       alert(`타임테이블 추가 오류: ${error.message}`);
-    }
-  };
-
-  const getPasswordModalTitle = () => {
-    if (!pendingAction) return '';
-    switch (pendingAction.type) {
-      case 'create': return '페스티벌 추가';
-      case 'update': return '페스티벌 수정';
-      case 'delete': return '페스티벌 삭제';
-      case 'updateReservation': return '예매정보 추가';
-      case 'updateTimeTable': return '타임테이블 추가';
-      default: return '관리자 인증';
-    }
-  };
-
-  const getPasswordModalMessage = () => {
-    if (!pendingAction) return '';
-    switch (pendingAction.type) {
-      case 'create': return '새 페스티벌을 추가하기 위해 관리자 비밀번호를 입력해주세요.';
-      case 'update': return '페스티벌을 수정하기 위해 관리자 비밀번호를 입력해주세요.';
-      case 'delete': return '페스티벌을 삭제하기 위해 관리자 비밀번호를 입력해주세요.';
-      case 'updateReservation': return '예매정보를 추가하기 위해 관리자 비밀번호를 입력해주세요.';
-      case 'updateTimeTable': return '타임테이블을 추가하기 위해 관리자 비밀번호를 입력해주세요.';
-      default: return '관리자 비밀번호를 입력해주세요.';
     }
   };
 
@@ -438,14 +406,6 @@ export default function FestivalsPage() {
         initialData={editingFestival || undefined}
         isReadOnly={false}
         hideTimeTableAndReservation={editingFestival ? true : false}
-      />
-
-      <PasswordModal
-        isOpen={isPasswordModalOpen}
-        onConfirm={handlePasswordConfirm}
-        onCancel={handlePasswordCancel}
-        title={getPasswordModalTitle()}
-        message={getPasswordModalMessage()}
       />
     </div>
   );
