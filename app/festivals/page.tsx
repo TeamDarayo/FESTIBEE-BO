@@ -403,6 +403,9 @@ export default function FestivalsPage() {
                             showManageButtons={true}
                             availableHalls={festival.placeId ? (hallsByPlaceId[festival.placeId] || []) : []}
                             festivalStartDate={festival.startDate}
+                            performanceId={festival.id}
+                            placeId={festival.placeId}
+                            onRefresh={loadFestivals}
                           />
                         </TableCell>
                       </TableRow>

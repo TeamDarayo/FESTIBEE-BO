@@ -50,13 +50,13 @@ async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<
   const url = `${baseUrl}${endpoint}`;
   
   const defaultOptions: RequestInit = {
+    // 타임아웃 설정 (30초)
+    signal: AbortSignal.timeout(30000),
+    ...options,
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
-    // 타임아웃 설정 (30초)
-    signal: AbortSignal.timeout(30000),
-    ...options,
   };
 
   try {
@@ -447,6 +447,26 @@ export const addTimeTableArtist = async (timetableId: number, artistData: { arti
 export const deleteTimeTableArtist = async (timetableId: number, artistId: number): Promise<void> => {
   return await apiCall(`/api/admin/timetable/${timetableId}/artist/${artistId}`, {
     method: 'DELETE',
+  });
+};
+
+export const updateTimeTable = async (
+  performanceId: number,
+  timetableId: number, 
+  updateData: { 
+    performanceDate: string; 
+    startTime: string; 
+    endTime: string; 
+    hallId: number | null;
+  },
+  password: string
+): Promise<TimeTableResponse> => {
+  return await apiCall<TimeTableResponse>(`/api/admin/performance/${performanceId}/timetable/${timetableId}`, {
+    method: 'PUT',
+    headers: {
+      'X-Admin-Password': password,
+    },
+    body: JSON.stringify(updateData),
   });
 };
 

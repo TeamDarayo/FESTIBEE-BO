@@ -6,7 +6,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchArtists, addTimeTableArtist, deleteTimeTableArtist } from '@/lib/api';
+import { 
+  fetchArtists, 
+  addTimeTableArtist, 
+  deleteTimeTableArtist, 
+  updateTimeTable,
+  addHalls,
+  updateHall
+} from '@/lib/api';
+import PasswordModal from '@/components/PasswordModal';
 
 interface Artist {
   id: number;
@@ -22,7 +30,10 @@ interface TimeTableProps {
   showManageButtons?: boolean;
   onSaveNewTimeTable?: (timeTable: Omit<TimeTableType, 'id'>) => void;
   availableHalls?: { id: number; name: string }[];
-  festivalStartDate?: string; // 페스티벌 시작 날짜
+  festivalStartDate?: string;
+  performanceId?: number;
+  placeId?: number;
+  onRefresh?: () => void;
 }
 
 export default function TimeTable({ 
@@ -32,7 +43,10 @@ export default function TimeTable({
   showManageButtons = false,
   onSaveNewTimeTable,
   availableHalls = [],
-  festivalStartDate
+  festivalStartDate,
+  performanceId,
+  placeId,
+  onRefresh
 }: TimeTableProps) {
   const [isAddingTimeTable, setIsAddingTimeTable] = useState(false);
   const [isEditingArtists, setIsEditingArtists] = useState(false);
@@ -42,13 +56,46 @@ export default function TimeTable({
   const [artistSearchTerm, setArtistSearchTerm] = useState('');
   const [lastAddedArtistIndex, setLastAddedArtistIndex] = useState<number | null>(null);
   const [deletingArtistIndex, setDeletingArtistIndex] = useState<number | null>(null);
+  
+  // 날짜 관리 모달
+  const [isDateEditModalOpen, setIsDateEditModalOpen] = useState(false);
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [newDate, setNewDate] = useState('');
+  const [isDatePasswordModalOpen, setIsDatePasswordModalOpen] = useState(false);
+  const [pendingDateChange, setPendingDateChange] = useState<{ oldDate: string; newDate: string } | null>(null);
+  
+  // 날짜 추가 모달
+  const [isAddDateModalOpen, setIsAddDateModalOpen] = useState(false);
+  const [addingNewDate, setAddingNewDate] = useState('');
+  
+  // 홀 관리 모달
+  const [isHallEditModalOpen, setIsHallEditModalOpen] = useState(false);
+  const [editingHall, setEditingHall] = useState<{ id: number; name: string } | null>(null);
+  const [newHallName, setNewHallName] = useState('');
+  const [isHallPasswordModalOpen, setIsHallPasswordModalOpen] = useState(false);
+  const [pendingHallChange, setPendingHallChange] = useState<{ id: number; name: string } | null>(null);
+  
+  // 홀 추가 모달
+  const [isAddHallModalOpen, setIsAddHallModalOpen] = useState(false);
+  const [addingHallName, setAddingHallName] = useState('');
+  const [isAddHallPasswordModalOpen, setIsAddHallPasswordModalOpen] = useState(false);
+  const [pendingHallAdd, setPendingHallAdd] = useState<string | null>(null);
+  
+  // 로컬 홀 상태 (동적으로 관리)
+  const [localHalls, setLocalHalls] = useState<{ id: number; name: string }[]>(availableHalls);
+  
   const [newTimeTable, setNewTimeTable] = useState<Omit<TimeTableType, 'id'>>({
     performanceDate: festivalStartDate || '',
     startTime: '',
     endTime: '',
-    hallId: 0,
+    hallId: undefined,
     artists: []
   });
+
+  // availableHalls가 변경되면 localHalls 업데이트
+  useEffect(() => {
+    setLocalHalls(availableHalls);
+  }, [availableHalls]);
 
   // 아티스트 목록 가져오기
   useEffect(() => {
@@ -65,6 +112,7 @@ export default function TimeTable({
 
   // 10분 단위로 반올림하는 함수
   const roundToNearest10Minutes = (time: string) => {
+    if (!time) return '00:00';
     const [hours, minutes] = time.split(':').map(Number);
     const roundedMinutes = Math.round(minutes / 10) * 10;
     const adjustedHours = hours + Math.floor(roundedMinutes / 60);
@@ -74,7 +122,7 @@ export default function TimeTable({
 
   const timeTablesByDate = useMemo(() => {
     const grouped = timeTables.reduce((acc, tt) => {
-      const date = tt.performanceDate;
+      const date = tt.performanceDate || '미정';
       if (!acc[date]) {
         acc[date] = [];
       }
@@ -82,32 +130,25 @@ export default function TimeTable({
       return acc;
     }, {} as Record<string, TimeTableType[]>);
 
-    return Object.entries(grouped).sort(([dateA], [dateB]) => dateA.localeCompare(dateB));
+    return Object.entries(grouped).sort(([dateA], [dateB]) => {
+      // '미정'은 항상 마지막
+      if (dateA === '미정') return 1;
+      if (dateB === '미정') return -1;
+      return dateA.localeCompare(dateB);
+    });
   }, [timeTables]);
 
   const halls = useMemo(() => {
-    // availableHalls가 있으면 그것을 사용, 없으면 기존 타임테이블에서 추출
-    if (availableHalls.length > 0) {
-      return availableHalls.map(hall => [hall.id, hall.name] as [number, string]);
-    }
-    
-    // 기존 타임테이블에서 홀 정보 추출 (fallback)
-    const uniqueHalls = new Map<number, string>();
-    timeTables.forEach(tt => {
-      if (tt.hallId && !uniqueHalls.has(tt.hallId)) {
-        uniqueHalls.set(tt.hallId, tt.hallName || `Hall ID ${tt.hallId}`);
-      }
-    });
-    return Array.from(uniqueHalls.entries()).sort((a,b) => a[0] - b[0]);
-  }, [timeTables, availableHalls]);
+    return localHalls.map(hall => [hall.id, hall.name] as [number, string]);
+  }, [localHalls]);
 
   const timeSlots = useMemo(() => {
     const times = new Set<string>();
     
     // 기존 타임테이블에서 시간 추출
     timeTables.forEach(tt => {
-      times.add(tt.startTime);
-      times.add(tt.endTime);
+      if (tt.startTime) times.add(tt.startTime);
+      if (tt.endTime) times.add(tt.endTime);
     });
     
     // 새로운 타임테이블에서도 시간 추출
@@ -133,10 +174,14 @@ export default function TimeTable({
     
     // 기존 타임테이블의 시작/종료 시간을 10분 단위로 반올림
     timeTables.forEach(tt => {
-      const startTime = roundToNearest10Minutes(tt.startTime);
-      const endTime = roundToNearest10Minutes(tt.endTime);
-      slots.add(startTime);
-      slots.add(endTime);
+      if (tt.startTime) {
+        const startTime = roundToNearest10Minutes(tt.startTime);
+        slots.add(startTime);
+      }
+      if (tt.endTime) {
+        const endTime = roundToNearest10Minutes(tt.endTime);
+        slots.add(endTime);
+      }
     });
     
     // 새로운 타임테이블도 포함
@@ -165,10 +210,14 @@ export default function TimeTable({
     
     const performanceTimes = new Set<string>();
     timeTables.forEach(tt => {
-      const startTime = roundToNearest10Minutes(tt.startTime);
-      const endTime = roundToNearest10Minutes(tt.endTime);
-      performanceTimes.add(startTime);
-      performanceTimes.add(endTime);
+      if (tt.startTime) {
+        const startTime = roundToNearest10Minutes(tt.startTime);
+        performanceTimes.add(startTime);
+      }
+      if (tt.endTime) {
+        const endTime = roundToNearest10Minutes(tt.endTime);
+        performanceTimes.add(endTime);
+      }
     });
     
     return generateTimeSlots.filter(time => performanceTimes.has(time));
@@ -185,28 +234,6 @@ export default function TimeTable({
     );
   }, [artists, artistSearchTerm]);
 
-  // 디버깅 로그
-  console.log('TimeTable component - availableHalls:', availableHalls);
-  console.log('TimeTable component - timeTables:', timeTables);
-  console.log('TimeTable component - timeTablesByDate:', timeTablesByDate);
-  console.log('TimeTable component - timeSlots:', timeSlots);
-  console.log('TimeTable component - generateTimeSlots:', generateTimeSlots);
-  console.log('TimeTable component - filteredTimeSlots:', filteredTimeSlots);
-  console.log('TimeTable component - halls:', halls);
-  
-  // 각 타임테이블의 상세 정보 로깅
-  timeTables.forEach((tt, index) => {
-    console.log(`TimeTable ${index}:`, {
-      id: tt.id,
-      date: tt.performanceDate,
-      startTime: tt.startTime,
-      endTime: tt.endTime,
-      hallName: tt.hallName,
-      hallId: tt.hallId,
-      artists: tt.artists
-    });
-  });
-
   const handleAddTimeTableClick = () => {
     if (onAddTimeTable) {
       onAddTimeTable();
@@ -216,8 +243,8 @@ export default function TimeTable({
   };
 
   const handleSaveNewTimeTable = () => {
-    if (!newTimeTable.performanceDate || !newTimeTable.startTime || !newTimeTable.endTime || !newTimeTable.hallId) {
-      alert('모든 필수 필드를 입력해주세요.');
+    if (!newTimeTable.performanceDate || !newTimeTable.startTime || !newTimeTable.endTime) {
+      alert('날짜와 시간을 입력해주세요.');
       return;
     }
 
@@ -230,7 +257,7 @@ export default function TimeTable({
       performanceDate: festivalStartDate || '',
       startTime: '',
       endTime: '',
-      hallId: 0,
+      hallId: undefined,
       artists: []
     });
     setIsAddingTimeTable(false);
@@ -242,7 +269,7 @@ export default function TimeTable({
       performanceDate: festivalStartDate || '',
       startTime: '',
       endTime: '',
-      hallId: 0,
+      hallId: undefined,
       artists: []
     });
   };
@@ -282,10 +309,9 @@ export default function TimeTable({
 
       alert('아티스트가 성공적으로 업데이트되었습니다.');
       
-      // 페이지 새로고침을 위해 부모 컴포넌트에 알림
-      if (onSaveNewTimeTable) {
-        // 빈 객체를 전달하여 새로고침 트리거
-        onSaveNewTimeTable({} as any);
+      // 페이지 새로고침
+      if (onRefresh) {
+        onRefresh();
       }
       
     } catch (error: any) {
@@ -362,18 +388,189 @@ export default function TimeTable({
     }
   };
 
+  // 날짜 수정 핸들러
+  const handleEditDate = (date: string) => {
+    setEditingDate(date);
+    setNewDate(date);
+    setIsDateEditModalOpen(true);
+  };
+
+  const handleSaveDateEdit = () => {
+    if (!newDate || !editingDate) return;
+    if (newDate === editingDate) {
+      setIsDateEditModalOpen(false);
+      return;
+    }
+    
+    setPendingDateChange({ oldDate: editingDate, newDate });
+    setIsDateEditModalOpen(false);
+    setIsDatePasswordModalOpen(true);
+  };
+
+  const handleDatePasswordConfirm = async (password: string) => {
+    if (!pendingDateChange || !performanceId) return;
+
+    try {
+      // 해당 날짜의 모든 시간표 찾기
+      const timeTablesForDate = timeTables.filter(tt => tt.performanceDate === pendingDateChange.oldDate);
+      
+      // 각 시간표의 날짜 업데이트 (모든 필드 포함)
+      for (const tt of timeTablesForDate) {
+        if (tt.id) {
+          await updateTimeTable(performanceId, tt.id, { 
+            performanceDate: pendingDateChange.newDate,
+            startTime: tt.startTime || '00:00',
+            endTime: tt.endTime || '00:00',
+            hallId: tt.hallId ?? null
+          }, password);
+        }
+      }
+
+      alert('날짜가 성공적으로 변경되었습니다.');
+      
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error: any) {
+      console.error('날짜 변경 오류:', error);
+      alert(`날짜 변경 오류: ${error.message}`);
+    } finally {
+      setIsDatePasswordModalOpen(false);
+      setPendingDateChange(null);
+      setEditingDate(null);
+    }
+  };
+
+  // 날짜 추가 핸들러
+  const handleAddDate = () => {
+    setAddingNewDate(festivalStartDate || '');
+    setIsAddDateModalOpen(true);
+  };
+
+  const handleSaveNewDate = () => {
+    if (!addingNewDate) {
+      alert('날짜를 입력해주세요.');
+      return;
+    }
+    
+    // 새 날짜에 기본 시간표 추가
+    if (onSaveNewTimeTable) {
+      onSaveNewTimeTable({
+        performanceDate: addingNewDate,
+        startTime: '00:00',
+        endTime: '00:00',
+        hallId: undefined,
+        artists: []
+      });
+    }
+    
+    setIsAddDateModalOpen(false);
+    setAddingNewDate('');
+  };
+
+  // 홀 수정 핸들러
+  const handleEditHall = (hall: { id: number; name: string }) => {
+    setEditingHall(hall);
+    setNewHallName(hall.name);
+    setIsHallEditModalOpen(true);
+  };
+
+  const handleSaveHallEdit = () => {
+    if (!newHallName || !editingHall) return;
+    if (newHallName === editingHall.name) {
+      setIsHallEditModalOpen(false);
+      return;
+    }
+    
+    setPendingHallChange({ id: editingHall.id, name: newHallName });
+    setIsHallEditModalOpen(false);
+    setIsHallPasswordModalOpen(true);
+  };
+
+  const handleHallPasswordConfirm = async (password: string) => {
+    if (!pendingHallChange) return;
+
+    try {
+      await updateHall(pendingHallChange.id, { name: pendingHallChange.name }, password);
+      
+      // 로컬 상태 업데이트
+      setLocalHalls(prev => 
+        prev.map(h => h.id === pendingHallChange.id ? { ...h, name: pendingHallChange.name } : h)
+      );
+
+      alert('홀 이름이 성공적으로 변경되었습니다.');
+      
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error: any) {
+      console.error('홀 이름 변경 오류:', error);
+      alert(`홀 이름 변경 오류: ${error.message}`);
+    } finally {
+      setIsHallPasswordModalOpen(false);
+      setPendingHallChange(null);
+      setEditingHall(null);
+    }
+  };
+
+  // 홀 추가 핸들러
+  const handleAddHall = () => {
+    setAddingHallName('');
+    setIsAddHallModalOpen(true);
+  };
+
+  const handleSaveNewHall = () => {
+    if (!addingHallName.trim()) {
+      alert('홀 이름을 입력해주세요.');
+      return;
+    }
+    
+    if (!placeId) {
+      alert('장소 ID를 찾을 수 없습니다.');
+      return;
+    }
+    
+    setPendingHallAdd(addingHallName);
+    setIsAddHallModalOpen(false);
+    setIsAddHallPasswordModalOpen(true);
+  };
+
+  const handleAddHallPasswordConfirm = async (password: string) => {
+    if (!pendingHallAdd || !placeId) return;
+
+    try {
+      const newHalls = await addHalls(placeId, [pendingHallAdd], password);
+      
+      // 로컬 상태에 새 홀 추가
+      if (newHalls.length > 0) {
+        setLocalHalls(prev => [...prev, newHalls[0]]);
+      }
+
+      alert('홀이 성공적으로 추가되었습니다.');
+      
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error: any) {
+      console.error('홀 추가 오류:', error);
+      alert(`홀 추가 오류: ${error.message}`);
+    } finally {
+      setIsAddHallPasswordModalOpen(false);
+      setPendingHallAdd(null);
+      setAddingHallName('');
+    }
+  };
+
   if (timeTablesByDate.length === 0 && !isAddingTimeTable) {
     return (
       <div className="w-full max-w-7xl mx-auto p-4">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">공연 타임테이블</h2>
         
         {/* 장소 정보 표시 */}
-        {availableHalls.length > 0 && (
+        {localHalls.length > 0 && (
           <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm text-blue-700">
-              <span className="font-medium">장소:</span> {availableHalls[0]?.name?.includes('공연장') || availableHalls[0]?.name?.includes('홀') ? 
-                availableHalls.map(hall => hall.name).join(', ') : 
-                `${availableHalls.length}개 홀`}
+              <span className="font-medium">장소:</span> {localHalls.map(hall => hall.name).join(', ')}
             </p>
           </div>
         )}
@@ -382,9 +579,9 @@ export default function TimeTable({
         <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg mb-6">
           <div className="mb-4">
             <h3 className="text-lg font-medium text-gray-700 mb-2">타임테이블 정보가 없습니다.</h3>
-            {availableHalls.length > 0 && (
+            {localHalls.length > 0 && (
               <div className="text-sm text-gray-600">
-                <p>이 장소의 홀: {availableHalls.map(hall => hall.name).join(', ')}</p>
+                <p>이 장소의 홀: {localHalls.map(hall => hall.name).join(', ')}</p>
               </div>
             )}
           </div>
@@ -392,6 +589,12 @@ export default function TimeTable({
             <div className="mt-4 space-x-2">
               <Button size="sm" onClick={handleAddTimeTableClick}>
                 타임테이블 추가
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleAddDate}>
+                날짜 추가
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleAddHall}>
+                홀 추가
               </Button>
             </div>
           )}
@@ -404,8 +607,21 @@ export default function TimeTable({
               <TableRow className="bg-gray-50">
                 <TableHead className="w-[100px] font-semibold text-gray-700">시간</TableHead>
                 {halls.map(([hallId, hallName]) => (
-                  <TableHead key={hallId} className="font-semibold text-gray-700">{hallName}</TableHead>
+                  <TableHead 
+                    key={hallId} 
+                    className="font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => showManageButtons && handleEditHall({ id: hallId, name: hallName })}
+                  >
+                    {hallName}
+                  </TableHead>
                 ))}
+                {showManageButtons && (
+                  <TableHead className="w-[60px]">
+                    <Button size="sm" variant="ghost" onClick={handleAddHall} className="h-8 w-8 p-0">
+                      <span className="text-xl text-blue-600">+</span>
+                    </Button>
+                  </TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -415,6 +631,7 @@ export default function TimeTable({
                   {halls.map(([hallId]) => (
                     <TableCell key={hallId} className="text-gray-400">-</TableCell>
                   ))}
+                  {showManageButtons && <TableCell />}
                 </TableRow>
               ))}
             </TableBody>
@@ -429,30 +646,55 @@ export default function TimeTable({
       <h2 className="text-2xl font-bold mb-6 text-gray-800">공연 타임테이블</h2>
       
       {/* 장소 정보 표시 */}
-      {availableHalls.length > 0 && (
-        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+      {localHalls.length > 0 && (
+        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex justify-between items-center">
           <p className="text-sm text-blue-700">
-            <span className="font-medium">장소:</span> {availableHalls[0]?.name?.includes('공연장') || availableHalls[0]?.name?.includes('홀') ? 
-              availableHalls.map(hall => hall.name).join(', ') : 
-              `${availableHalls.length}개 홀`}
+            <span className="font-medium">장소:</span> {localHalls.map(hall => hall.name).join(', ')}
           </p>
+          {showManageButtons && (
+            <Button size="sm" variant="outline" onClick={handleAddHall} className="text-blue-600">
+              홀 추가 +
+            </Button>
+          )}
         </div>
       )}
       
       {/* 기존 타임테이블 */}
       {timeTablesByDate.length > 0 && (
         <Tabs defaultValue={timeTablesByDate.length > 0 ? timeTablesByDate[0][0] : ''} className="w-full mb-6">
-          <TabsList className="grid w-full grid-cols-4 mb-6 bg-gray-100 p-1 rounded-lg">
-            {timeTablesByDate.map(([date]) => (
-              <TabsTrigger 
-                key={date} 
-                value={date}
-                className="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm"
-              >
-                {format(new Date(date), 'MM/dd (EEE)')}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="flex items-center gap-2 mb-6">
+            <TabsList className="flex-1 grid auto-cols-fr grid-flow-col bg-gray-100 p-1 rounded-lg">
+              {timeTablesByDate.map(([date]) => (
+                <TabsTrigger 
+                  key={date} 
+                  value={date}
+                  className="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm relative group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span>
+                      {date === '미정' ? '날짜 미정' : format(new Date(date), 'MM/dd (EEE)')}
+                    </span>
+                    {showManageButtons && date !== '미정' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditDate(date);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-blue-500 hover:bg-blue-600 text-white rounded px-2 py-0.5"
+                      >
+                        수정
+                      </button>
+                    )}
+                  </div>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            {showManageButtons && (
+              <Button size="sm" variant="outline" onClick={handleAddDate} className="flex-shrink-0">
+                날짜 추가 +
+              </Button>
+            )}
+          </div>
 
           {timeTablesByDate.map(([date, tablesForDate]) => (
             <TabsContent key={date} value={date}>
@@ -462,23 +704,44 @@ export default function TimeTable({
                     <TableRow className="bg-gray-50">
                       <TableHead className="w-[100px] font-semibold text-gray-700">시간</TableHead>
                       {halls.map(([hallId, hallName]) => (
-                        <TableHead key={hallId} className="font-semibold text-gray-700">{hallName}</TableHead>
+                        <TableHead 
+                          key={hallId} 
+                          className="font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors relative group"
+                          onClick={() => showManageButtons && handleEditHall({ id: hallId, name: hallName })}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span>{hallName}</span>
+                            {showManageButtons && (
+                              <span className="opacity-0 group-hover:opacity-100 text-xs text-blue-600">
+                                수정
+                              </span>
+                            )}
+                          </div>
+                        </TableHead>
                       ))}
+                      {showManageButtons && (
+                        <TableHead className="w-[60px]">
+                          <Button size="sm" variant="ghost" onClick={handleAddHall} className="h-8 w-8 p-0">
+                            <span className="text-xl text-blue-600">+</span>
+                          </Button>
+                        </TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredTimeSlots.map((time, timeIndex) => (
+                    {filteredTimeSlots.map((time) => (
                       <TableRow key={time} className="hover:bg-gray-50">
                         <TableCell className="font-medium text-gray-600">{time}</TableCell>
                         {halls.map(([hallId]) => {
                           const performance = tablesForDate.find(
-                            tt => tt.hallId === hallId && roundToNearest10Minutes(tt.startTime) === time
+                            tt => tt.hallId === hallId && roundToNearest10Minutes(tt.startTime || '') === time
                           );
                           
                           if (!performance) {
                             // Check if this cell is part of a rowspan
                             const ongoingPerformance = tablesForDate.find(tt => 
                               tt.hallId === hallId &&
+                              tt.startTime && tt.endTime &&
                               roundToNearest10Minutes(tt.startTime) < time &&
                               roundToNearest10Minutes(tt.endTime) > time
                             );
@@ -486,9 +749,9 @@ export default function TimeTable({
                           }
 
                           // 공연이 시작되는 시간에만 표시
-                          if (roundToNearest10Minutes(performance.startTime) === time) {
-                            const startIdx = filteredTimeSlots.findIndex(t => t === roundToNearest10Minutes(performance.startTime));
-                            const endIdx = filteredTimeSlots.findIndex(t => t === roundToNearest10Minutes(performance.endTime));
+                          if (performance.startTime && roundToNearest10Minutes(performance.startTime) === time) {
+                            const startIdx = filteredTimeSlots.findIndex(t => t === roundToNearest10Minutes(performance.startTime || ''));
+                            const endIdx = filteredTimeSlots.findIndex(t => t === roundToNearest10Minutes(performance.endTime || ''));
                             const rowSpan = endIdx >= startIdx ? endIdx - startIdx + 1 : 1;
                             
                             return (
@@ -503,6 +766,10 @@ export default function TimeTable({
                                     const mainArtists = performance.artists.filter(artist => artist.type === 'MAIN');
                                     const subArtists = performance.artists.filter(artist => artist.type === 'SUB');
                                     
+                                    if (mainArtists.length === 0 && subArtists.length === 0) {
+                                      return <span className="text-gray-400">아티스트 미정</span>;
+                                    }
+                                    
                                     let displayText = mainArtists.map(artist => artist.artistName || `ID ${artist.artistId}`).join(', ');
                                     
                                     if (subArtists.length > 0) {
@@ -514,7 +781,7 @@ export default function TimeTable({
                                   })()}
                                 </div>
                                 <div className="text-sm text-green-600 mt-1 p-2 font-medium">
-                                  {performance.startTime.split(':').slice(0, 2).join(':')} - {performance.endTime.split(':').slice(0, 2).join(':')}
+                                  {performance.startTime?.split(':').slice(0, 2).join(':') || '00:00'} - {performance.endTime?.split(':').slice(0, 2).join(':') || '00:00'}
                                 </div>
                                 <div className="text-xs text-blue-500 mt-1 p-2">
                                   클릭하여 아티스트 편집
@@ -525,6 +792,7 @@ export default function TimeTable({
                           
                           return null;
                         })}
+                        {showManageButtons && <TableCell />}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -584,13 +852,17 @@ export default function TimeTable({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">홀</label>
-              <Select onValueChange={(value) => setNewTimeTable(prev => ({ ...prev, hallId: parseInt(value, 10) }))}>
+              <label className="block text-sm font-medium text-gray-700 mb-1">홀 (선택사항)</label>
+              <Select 
+                value={newTimeTable.hallId?.toString() || 'none'} 
+                onValueChange={(value) => setNewTimeTable(prev => ({ ...prev, hallId: value === 'none' ? undefined : parseInt(value, 10) }))}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="홀 선택" />
+                  <SelectValue placeholder="홀 선택 (선택사항)" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableHalls.map(hall => (
+                  <SelectItem value="none">홀 미정</SelectItem>
+                  {localHalls.map(hall => (
                     <SelectItem key={hall.id} value={hall.id.toString()}>{hall.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -598,93 +870,19 @@ export default function TimeTable({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">시작 시간</label>
-              <div className="flex gap-2">
-                <Select 
-                  value={newTimeTable.startTime ? newTimeTable.startTime.split(':')[0] : ''} 
-                  onValueChange={(hour) => {
-                    const currentMinute = newTimeTable.startTime ? newTimeTable.startTime.split(':')[1] || '00' : '00';
-                    setNewTimeTable(prev => ({ ...prev, startTime: `${hour}:${currentMinute}` }));
-                  }}
-                >
-                  <SelectTrigger className="w-20">
-                    <SelectValue placeholder="시" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 24 }, (_, i) => (
-                      <SelectItem key={i} value={i.toString().padStart(2, '0')}>
-                        {i.toString().padStart(2, '0')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="flex items-center text-gray-500">:</span>
-                <Select 
-                  value={newTimeTable.startTime ? newTimeTable.startTime.split(':')[1] : ''} 
-                  onValueChange={(minute) => {
-                    const currentHour = newTimeTable.startTime ? newTimeTable.startTime.split(':')[0] || '00' : '00';
-                    setNewTimeTable(prev => ({ ...prev, startTime: `${currentHour}:${minute}` }));
-                  }}
-                >
-                  <SelectTrigger className="w-20">
-                    <SelectValue placeholder="분" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60 overflow-y-auto">
-                    {Array.from({ length: 60 }, (_, i) => {
-                      const minute = i;
-                      return (
-                        <SelectItem key={minute} value={minute.toString().padStart(2, '0')}>
-                          {minute.toString().padStart(2, '0')}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Input 
+                type="time" 
+                value={newTimeTable.startTime}
+                onChange={(e) => setNewTimeTable(prev => ({ ...prev, startTime: e.target.value }))}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">종료 시간</label>
-              <div className="flex gap-2">
-                <Select 
-                  value={newTimeTable.endTime ? newTimeTable.endTime.split(':')[0] : ''} 
-                  onValueChange={(hour) => {
-                    const currentMinute = newTimeTable.endTime ? newTimeTable.endTime.split(':')[1] || '00' : '00';
-                    setNewTimeTable(prev => ({ ...prev, endTime: `${hour}:${currentMinute}` }));
-                  }}
-                >
-                  <SelectTrigger className="w-20">
-                    <SelectValue placeholder="시" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 24 }, (_, i) => (
-                      <SelectItem key={i} value={i.toString().padStart(2, '0')}>
-                        {i.toString().padStart(2, '0')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="flex items-center text-gray-500">:</span>
-                <Select 
-                  value={newTimeTable.endTime ? newTimeTable.endTime.split(':')[1] : ''} 
-                  onValueChange={(minute) => {
-                    const currentHour = newTimeTable.endTime ? newTimeTable.endTime.split(':')[0] || '00' : '00';
-                    setNewTimeTable(prev => ({ ...prev, endTime: `${currentHour}:${minute}` }));
-                  }}
-                >
-                  <SelectTrigger className="w-20">
-                    <SelectValue placeholder="분" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60 overflow-y-auto">
-                    {Array.from({ length: 60 }, (_, i) => {
-                      const minute = i;
-                      return (
-                        <SelectItem key={minute} value={minute.toString().padStart(2, '0')}>
-                          {minute.toString().padStart(2, '0')}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Input 
+                type="time" 
+                value={newTimeTable.endTime}
+                onChange={(e) => setNewTimeTable(prev => ({ ...prev, endTime: e.target.value }))}
+              />
             </div>
           </div>
           <div className="flex gap-2 mt-4">
@@ -716,7 +914,7 @@ export default function TimeTable({
               <p className="text-sm text-gray-600">
                 <span className="font-medium">날짜:</span> {selectedTimeTable.performanceDate} | 
                 <span className="font-medium"> 시간:</span> {selectedTimeTable.startTime} - {selectedTimeTable.endTime} | 
-                <span className="font-medium"> 홀:</span> {selectedTimeTable.hallName}
+                <span className="font-medium"> 홀:</span> {selectedTimeTable.hallName || '미정'}
               </p>
             </div>
 
@@ -804,6 +1002,140 @@ export default function TimeTable({
           </div>
         </div>
       )}
+
+      {/* 날짜 수정 모달 */}
+      {isDateEditModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium mb-4">날짜 수정</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                새로운 날짜
+              </label>
+              <Input 
+                type="date" 
+                value={newDate}
+                onChange={(e) => setNewDate(e.target.value)}
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                이 날짜의 모든 시간표가 새 날짜로 변경됩니다.
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button onClick={handleSaveDateEdit}>확인</Button>
+              <Button variant="outline" onClick={() => setIsDateEditModalOpen(false)}>취소</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 날짜 추가 모달 */}
+      {isAddDateModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium mb-4">날짜 추가</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                추가할 날짜
+              </label>
+              <Input 
+                type="date" 
+                value={addingNewDate}
+                onChange={(e) => setAddingNewDate(e.target.value)}
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                새 날짜에 기본 시간표가 생성됩니다.
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button onClick={handleSaveNewDate}>확인</Button>
+              <Button variant="outline" onClick={() => setIsAddDateModalOpen(false)}>취소</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 홀 수정 모달 */}
+      {isHallEditModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium mb-4">홀 이름 수정</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                새로운 홀 이름
+              </label>
+              <Input 
+                type="text" 
+                value={newHallName}
+                onChange={(e) => setNewHallName(e.target.value)}
+                placeholder="홀 이름 입력"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button onClick={handleSaveHallEdit}>확인</Button>
+              <Button variant="outline" onClick={() => setIsHallEditModalOpen(false)}>취소</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 홀 추가 모달 */}
+      {isAddHallModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium mb-4">홀 추가</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                홀 이름
+              </label>
+              <Input 
+                type="text" 
+                value={addingHallName}
+                onChange={(e) => setAddingHallName(e.target.value)}
+                placeholder="홀 이름 입력"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button onClick={handleSaveNewHall}>확인</Button>
+              <Button variant="outline" onClick={() => setIsAddHallModalOpen(false)}>취소</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 비밀번호 모달들 */}
+      <PasswordModal 
+        isOpen={isDatePasswordModalOpen}
+        onCancel={() => {
+          setIsDatePasswordModalOpen(false);
+          setPendingDateChange(null);
+        }}
+        onConfirm={handleDatePasswordConfirm}
+        title="날짜 변경"
+        message="날짜를 변경하려면 관리자 비밀번호를 입력해주세요."
+      />
+
+      <PasswordModal 
+        isOpen={isHallPasswordModalOpen}
+        onCancel={() => {
+          setIsHallPasswordModalOpen(false);
+          setPendingHallChange(null);
+        }}
+        onConfirm={handleHallPasswordConfirm}
+        title="홀 이름 변경"
+        message="홀 이름을 변경하려면 관리자 비밀번호를 입력해주세요."
+      />
+
+      <PasswordModal 
+        isOpen={isAddHallPasswordModalOpen}
+        onCancel={() => {
+          setIsAddHallPasswordModalOpen(false);
+          setPendingHallAdd(null);
+        }}
+        onConfirm={handleAddHallPasswordConfirm}
+        title="홀 추가"
+        message="홀을 추가하려면 관리자 비밀번호를 입력해주세요."
+      />
     </div>
   );
-} 
+}

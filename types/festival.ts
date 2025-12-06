@@ -22,7 +22,7 @@ export interface TimeTable {
   performanceDate: string;
   startTime: string;
   endTime: string;
-  hallId?: number; // For POST request
+  hallId?: number | null; // For POST request - nullable
   hallName?: string; // From GET response
   artists: TimeTableArtist[];
 }
@@ -159,6 +159,6 @@ export interface TimeTableAddRequest {
   performanceDate: string;
   startTime: string;
   endTime: string;
-  hallId: number;
+  hallId?: number | null;
   password: string;
 } 
