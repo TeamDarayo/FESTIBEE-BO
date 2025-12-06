@@ -16,7 +16,7 @@ import { FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { Hall } from '@/types/place';
 
 export default function FestivalsPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, password } = useAuth();
   const [festivals, setFestivals] = useState<Festival[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -152,9 +152,13 @@ export default function FestivalsPage() {
       alert('먼저 관리자 로그인을 해주세요.');
       return;
     }
+    if (!password) {
+      alert('관리자 비밀번호를 확인해주세요.');
+      return;
+    }
 
     try {
-      await addTimeTable(performanceId, timeTableData);
+      await addTimeTable(performanceId, { ...timeTableData, password });
       alert('타임테이블이 성공적으로 추가되었습니다.');
       await loadFestivals();
     } catch (err: any) {

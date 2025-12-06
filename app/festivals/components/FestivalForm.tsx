@@ -37,7 +37,7 @@ const getInitialFormData = (initialData?: Festival): Omit<Festival, 'id'> => ({
 });
 
 export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, isReadOnly, hideTimeTableAndReservation }: FestivalFormProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, password } = useAuth();
   const [formData, setFormData] = useState<Omit<Festival, 'id'>>(() => getInitialFormData(initialData));
   const [places, setPlaces] = useState<Place[]>([]);
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
@@ -221,6 +221,10 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
       alert('먼저 관리자 로그인을 해주세요.');
       return;
     }
+    if (!password) {
+      alert('관리자 비밀번호를 확인해주세요.');
+      return;
+    }
 
     if (!initialData?.id) {
       alert('페스티벌을 먼저 저장해야 타임테이블을 추가할 수 있습니다.');
@@ -243,6 +247,7 @@ export default function FestivalForm({ onSubmit, onCancel, initialData, isOpen, 
       startTime: formatTime(newTimeTable.startTime),
       endTime: formatTime(newTimeTable.endTime),
       hallId: newTimeTable.hallId,
+      password,
     };
     
     try {
