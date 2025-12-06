@@ -172,12 +172,12 @@ export default function CrawlingPage() {
         variant="outline"
         size="sm"
         onClick={() => onPageChange(page - 1)}
-        disabled={page <= 1}
+        disabled={page === 0}
       >
         <FiChevronLeft className="mr-1" />
         이전
       </Button>
-      <span className="text-sm text-gray-600">페이지 {page}</span>
+      <span className="text-sm text-gray-600">페이지 {page + 1}</span>
       <Button
         variant="outline"
         size="sm"
@@ -292,7 +292,7 @@ export default function CrawlingPage() {
                     value={seedSite}
                     onChange={(e) => {
                       setSeedSite(e.target.value as CrawlingSite);
-                      setSeedPage(1);
+                      setSeedPage(0);
                     }}
                     className="border border-gray-300 rounded-md px-3 py-2 text-sm"
                   >
@@ -413,7 +413,7 @@ export default function CrawlingPage() {
                     value={crawledSite}
                     onChange={(e) => {
                       setCrawledSite(e.target.value as CrawlingSite);
-                      setCrawledPage(1);
+                      setCrawledPage(0);
                     }}
                     className="border border-gray-300 rounded-md px-3 py-2 text-sm"
                   >

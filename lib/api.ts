@@ -687,15 +687,15 @@ import { CrawlingJob, SeedPerformance, CrawledPerformance, CrawlingSite } from '
 
 // 크롤링 작업 목록 조회
 export const fetchCrawlingJobs = async (page: number = 0, size: number = 10): Promise<CrawlingJob[]> => {
-  return await apiCall<CrawlingJob[]>(`/admin/crawling/jobs?page=${page}&size=${size}`);
+  return await apiCall<CrawlingJob[]>(`/admin/crawling/jobs?page=${page}&size=${size}&sort=updatedAt,desc`);
 };
 
 // 시드 공연 목록 조회
 export const fetchSeedPerformances = async (site: CrawlingSite, page: number = 0, size: number = 3): Promise<SeedPerformance[]> => {
-  return await apiCall<SeedPerformance[]>(`/admin/crawling/seed-performances?site=${site}&page=${page}&size=${size}`);
+  return await apiCall<SeedPerformance[]>(`/admin/crawling/seed-performances?site=${site}&page=${page}&size=${size}&sort=updatedAt,desc`);
 };
 
 // 크롤링된 공연 목록 조회
 export const fetchCrawledPerformances = async (site: CrawlingSite, page: number = 0, size: number = 3): Promise<CrawledPerformance[]> => {
-  return await apiCall<CrawledPerformance[]>(`/admin/crawling/crawled-performances?site=${site}&page=${page}&size=${size}`);
+  return await apiCall<CrawledPerformance[]>(`/admin/crawling/crawled-performances?site=${site}&page=${page}&size=${size}&sort=updatedAt,desc`);
 }; 
