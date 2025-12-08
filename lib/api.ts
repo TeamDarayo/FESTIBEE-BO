@@ -488,7 +488,7 @@ export const updateTimeTable = async (
 };
 
 export const deleteTimeTable = async (performanceId: number, timeTableId: number, password?: string): Promise<void> => {
-  return await apiCall(`/api/admin/performance/${performanceId}/timetable/${timeTableId}`, {
+  return await apiCall(`/api/admin/timetable/${timeTableId}`, {
     method: 'DELETE',
     headers: {
       'X-Admin-Password': getPassword(password),
@@ -683,7 +683,25 @@ export const sendAlarmTest = async (request: AlarmTestRequest): Promise<any> => 
 };
 
 // 크롤링 관리 API 함수들
-import { CrawlingJob, SeedPerformance, CrawledPerformance, CrawlingSite } from '@/types/crawling';
+import { 
+  CrawlingJob, 
+  SeedPerformance, 
+  CrawledPerformance, 
+  CrawlingSite,
+  CrawledPerformanceWithLinks,
+  CreatePlaceLinkRequest,
+  CreateNewPlaceLinkRequest,
+  CreatePerformanceLinkRequest,
+  CreateNewPerformanceLinkRequest,
+  CreateHallLinkRequest,
+  CreateNewHallLinkRequest,
+  CreateArtistLinkRequest,
+  CreateNewArtistLinkRequest,
+  PlaceLink,
+  PerformanceLink,
+  HallLink,
+  ArtistLink
+} from '@/types/crawling';
 
 // 크롤링 작업 목록 조회
 export const fetchCrawlingJobs = async (page: number = 0, size: number = 10): Promise<CrawlingJob[]> => {
@@ -695,7 +713,180 @@ export const fetchSeedPerformances = async (site: CrawlingSite, page: number = 0
   return await apiCall<SeedPerformance[]>(`/admin/crawling/seed-performances?site=${site}&page=${page}&size=${size}&sort=updatedAt,desc`);
 };
 
-// 크롤링된 공연 목록 조회
-export const fetchCrawledPerformances = async (site: CrawlingSite, page: number = 0, size: number = 3): Promise<CrawledPerformance[]> => {
-  return await apiCall<CrawledPerformance[]>(`/admin/crawling/crawled-performances?site=${site}&page=${page}&size=${size}&sort=updatedAt,desc`);
-}; 
+// 크롤링된 공연 목록 조회 (연동 정보 포함)
+export const fetchCrawledPerformances = async (site: CrawlingSite, page: number = 0, size: number = 10): Promise<CrawledPerformanceWithLinks[]> => {
+  return await apiCall<CrawledPerformanceWithLinks[]>(`/admin/crawling/crawled-performances?site=${site}&page=${page}&size=${size}&sort=updatedAt,desc`);
+};
+
+// 크롤링된 공연 상세 조회 (연동 정보 포함)
+// 개별 조회 API가 없으므로 목록에서 필터링
+export const fetchCrawledPerformanceById = async (id: number): Promise<CrawledPerformanceWithLinks | null> => {
+  // 모든 사이트에서 검색
+  const sites: CrawlingSite[] = ['INTERPARK', 'YES24', 'MELON'];
+  
+  for (const site of sites) {
+    try {
+      // 페이지 크기를 크게 해서 한 번에 많이 가져옴
+      const data = await apiCall<CrawledPerformanceWithLinks[]>(
+        `/admin/crawling/crawled-performances?site=${site}&page=0&size=100`
+      );
+      const found = data.find(item => item.performance.id === id);
+      if (found) return found;
+    } catch (err) {
+      console.error(`Failed to fetch from ${site}:`, err);
+    }
+  }
+  
+  return null;
+};
+
+// ========== 장소 연동 API ==========
+// 기존 장소에 연동
+export const createPlaceLink = async (crawledPerformanceId: number, request: CreatePlaceLinkRequest): Promise<PlaceLink> => {
+  return await apiCall<PlaceLink>(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/places`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+};
+
+// 새 장소 생성 후 연동
+export const createNewPlaceLink = async (crawledPerformanceId: number, request: CreateNewPlaceLinkRequest): Promise<PlaceLink> => {
+  return await apiCall<PlaceLink>(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/places/new`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+};
+
+// 장소 자동 연동
+export const autoLinkPlace = async (crawledPerformanceId: number): Promise<PlaceLink> => {
+  return await apiCall<PlaceLink>(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/places/auto`, {
+    method: 'POST',
+  });
+};
+
+// 장소 연동 수정
+export const updatePlaceLink = async (crawledPerformanceId: number, performancePlaceId: number, request: { targetPerformancePlaceId?: number; venderPlaceId?: string; site: CrawlingSite }): Promise<PlaceLink> => {
+  return await apiCall<PlaceLink>(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/places/${performancePlaceId}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  });
+};
+
+// 장소 연동 삭제
+export const deletePlaceLink = async (crawledPerformanceId: number, performancePlaceId: number): Promise<void> => {
+  return await apiCall(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/places/${performancePlaceId}`, {
+    method: 'DELETE',
+  });
+};
+
+// ========== 공연 연동 API ==========
+// 기존 공연에 연동
+export const createPerformanceLink = async (crawledPerformanceId: number, request: CreatePerformanceLinkRequest): Promise<PerformanceLink> => {
+  return await apiCall<PerformanceLink>(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/performances`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+};
+
+// 새 공연 생성 후 연동
+export const createNewPerformanceLink = async (crawledPerformanceId: number, request: CreateNewPerformanceLinkRequest): Promise<PerformanceLink> => {
+  return await apiCall<PerformanceLink>(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/performances/new`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+};
+
+// 공연 연동 수정
+export const updatePerformanceLink = async (crawledPerformanceId: number, performanceId: number, request: CreatePerformanceLinkRequest): Promise<PerformanceLink> => {
+  return await apiCall<PerformanceLink>(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/performances/${performanceId}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  });
+};
+
+// 공연 연동 삭제
+export const deletePerformanceLink = async (crawledPerformanceId: number, performanceId: number): Promise<void> => {
+  return await apiCall(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/performances/${performanceId}`, {
+    method: 'DELETE',
+  });
+};
+
+// ========== 홀 연동 API ==========
+// 기존 홀에 연동
+export const createHallLink = async (crawledPerformanceId: number, venderHallName: string, request: CreateHallLinkRequest): Promise<HallLink> => {
+  return await apiCall<HallLink>(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/halls/${encodeURIComponent(venderHallName)}`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+};
+
+// 새 홀 생성 후 연동
+export const createNewHallLink = async (crawledPerformanceId: number, venderHallName: string, request: CreateNewHallLinkRequest): Promise<HallLink> => {
+  return await apiCall<HallLink>(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/halls/${encodeURIComponent(venderHallName)}/new`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+};
+
+// 홀 연동 수정
+export const updateHallLink = async (crawledPerformanceId: number, venderHallName: string, request: CreateHallLinkRequest): Promise<HallLink> => {
+  return await apiCall<HallLink>(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/halls/${encodeURIComponent(venderHallName)}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  });
+};
+
+// 홀 연동 삭제
+export const deleteHallLink = async (crawledPerformanceId: number, venderHallName: string): Promise<void> => {
+  return await apiCall(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/halls/${encodeURIComponent(venderHallName)}`, {
+    method: 'DELETE',
+  });
+};
+
+// ========== 아티스트 연동 API ==========
+// 기존 아티스트에 연동
+export const createArtistLink = async (crawledPerformanceId: number, venderArtistName: string, request: CreateArtistLinkRequest): Promise<ArtistLink> => {
+  return await apiCall<ArtistLink>(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/artists/${encodeURIComponent(venderArtistName)}`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+};
+
+// 새 아티스트 생성 후 연동
+export const createNewArtistLink = async (crawledPerformanceId: number, venderArtistName: string, request: CreateNewArtistLinkRequest): Promise<ArtistLink> => {
+  return await apiCall<ArtistLink>(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/artists/${encodeURIComponent(venderArtistName)}/new`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+};
+
+// 아티스트 자동 연동
+export const autoLinkArtists = async (crawledPerformanceId: number): Promise<ArtistLink[]> => {
+  return await apiCall<ArtistLink[]>(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/artist-links/auto`, {
+    method: 'POST',
+  });
+};
+
+// 아티스트 연동 수정
+export const updateArtistLink = async (
+  crawledPerformanceId: number,
+  venderArtistName: string,
+  request: { artistId: number; venderArtistId?: string; site: CrawlingSite; status?: ArtistLinkStatus }
+): Promise<ArtistLink> => {
+  return await apiCall<ArtistLink>(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/artists/${encodeURIComponent(venderArtistName)}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  });
+};
+
+// 아티스트 연동 삭제
+export const deleteArtistLink = async (crawledPerformanceId: number, venderArtistName: string): Promise<void> => {
+  return await apiCall(`/api/admin/crawling/crawled-performances/${crawledPerformanceId}/links/artists/${encodeURIComponent(venderArtistName)}`, {
+    method: 'DELETE',
+  });
+};
+
+// ========== 검색 API ==========
+// 아티스트 검색 (기존 fetchArtists 사용)
+// 장소 검색 (기존 fetchPlaces 사용)
+// 공연 검색 (기존 fetchFestivals 사용) 

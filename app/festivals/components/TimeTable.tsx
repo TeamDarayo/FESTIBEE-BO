@@ -12,6 +12,7 @@ import {
   addTimeTableArtist, 
   deleteTimeTableArtist, 
   updateTimeTable,
+  deleteTimeTable,
   addHalls,
   updateHall
 } from '@/lib/api';
@@ -59,6 +60,7 @@ export default function TimeTable({
   const [artistSearchTerm, setArtistSearchTerm] = useState('');
   const [lastAddedArtistIndex, setLastAddedArtistIndex] = useState<number | null>(null);
   const [deletingArtistIndex, setDeletingArtistIndex] = useState<number | null>(null);
+  const [deletingTimeTable, setDeletingTimeTable] = useState(false);
   
   // 날짜 관리 모달
   const [isDateEditModalOpen, setIsDateEditModalOpen] = useState(false);
@@ -119,6 +121,30 @@ export default function TimeTable({
     const adjustedHours = hours + Math.floor(roundedMinutes / 60);
     const finalMinutes = roundedMinutes % 60;
     return `${adjustedHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
+  };
+
+  const handleDeleteTimeTable = async () => {
+    if (!selectedTimeTable || !performanceId) {
+      alert('타임테이블이나 공연 정보가 없습니다.');
+      return;
+    }
+    if (!confirm(`타임테이블을 삭제하시겠습니까?\n날짜: ${selectedTimeTable.performanceDate}\n시간: ${selectedTimeTable.startTime} - ${selectedTimeTable.endTime}`)) {
+      return;
+    }
+    setDeletingTimeTable(true);
+    try {
+      await deleteTimeTable(performanceId, selectedTimeTable.id!);
+      alert('타임테이블이 삭제되었습니다.');
+      setIsEditingArtists(false);
+      setSelectedTimeTable(null);
+      setSelectedArtists([]);
+      if (onRefresh) onRefresh();
+    } catch (error: any) {
+      console.error('타임테이블 삭제 오류:', error);
+      alert(`타임테이블 삭제 오류: ${error.message}`);
+    } finally {
+      setDeletingTimeTable(false);
+    }
   };
 
   const timeTablesByDate = useMemo(() => {
@@ -996,7 +1022,17 @@ export default function TimeTable({
       {isEditingArtists && selectedTimeTable && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <h3 className="text-lg font-medium mb-4">아티스트 편집</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium">아티스트 편집</h3>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={handleDeleteTimeTable}
+                disabled={deletingTimeTable}
+              >
+                {deletingTimeTable ? '삭제 중...' : '타임테이블 삭제'}
+              </Button>
+            </div>
             
             {/* 타임테이블 정보 */}
             <div className="mb-4 p-3 bg-gray-50 rounded">
