@@ -52,6 +52,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'ticket.melon.com'
+      },
+      {
+        protocol: 'https',
+        hostname: 'is1-ssl.mzstatic.com'
       }
     ],
     // 이미지 최적화 설정
