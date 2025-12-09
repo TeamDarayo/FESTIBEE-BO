@@ -687,7 +687,6 @@ import {
   CrawlingJob, 
   SeedPerformance, 
   CrawledPerformance, 
-  CrawlingSite,
   CrawledPerformanceWithLinks,
   CreatePlaceLinkRequest,
   CreateNewPlaceLinkRequest,
@@ -700,7 +699,9 @@ import {
   PlaceLink,
   PerformanceLink,
   HallLink,
-  ArtistLink
+  ArtistLink,
+  ArtistLinkStatus,
+  CrawlingSite
 } from '@/types/crawling';
 
 // 크롤링 작업 목록 조회
