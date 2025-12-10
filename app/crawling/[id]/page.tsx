@@ -297,6 +297,7 @@ export default function CrawledPerformanceDetailPage() {
 
   // 모달 상태
   const [showPerformanceSearch, setShowPerformanceSearch] = useState(false);
+  const [showExistingPerformanceModal, setShowExistingPerformanceModal] = useState(false);
   const [showPlaceSearch, setShowPlaceSearch] = useState(false);
   const [showArtistSearch, setShowArtistSearch] = useState<string | null>(null);
   const [showNewPerformance, setShowNewPerformance] = useState(false);
@@ -342,6 +343,8 @@ export default function CrawledPerformanceDetailPage() {
     hallId: number | null;
     venderArtistName: string;
   } | null>(null);
+  const [selectedExistingPerformance, setSelectedExistingPerformance] = useState<Festival | null>(null);
+  const [selectedExistingLinkItems, setSelectedExistingLinkItems] = useState<CrawlingLinkItem[]>(['BASIC']);
 
   // 작업 상태
   const [isLinking, setIsLinking] = useState(false);
@@ -454,15 +457,29 @@ export default function CrawledPerformanceDetailPage() {
   };
 
   // 공연 연동
-  const handleLinkPerformance = async (festival: Festival) => {
+  const handleSelectExistingPerformance = (festival: Festival) => {
+    setSelectedExistingPerformance(festival);
+    setSelectedExistingLinkItems(['BASIC']);
+    setShowExistingPerformanceModal(true);
+  };
+
+  const handleLinkPerformance = async () => {
+    if (!selectedExistingPerformance) return;
+    if (selectedExistingLinkItems.length === 0) {
+      setActionMessage({ type: 'error', text: '연동 항목을 최소 1개 이상 선택해주세요.' });
+      return;
+    }
     setIsLinking(true);
     try {
       await createPerformanceLink(id, { 
-        performanceId: festival.id,
-        linkItems: ['BASIC'] // 기본값: 기본 정보만 연동
+        performanceId: selectedExistingPerformance.id,
+        linkItems: selectedExistingLinkItems
       });
       await loadData();
-      setActionMessage({ type: 'success', text: `"${festival.name}" 공연이 연동되었습니다. (기본 정보)` });
+      setShowExistingPerformanceModal(false);
+      setSelectedExistingPerformance(null);
+      setSelectedExistingLinkItems(['BASIC']);
+      setActionMessage({ type: 'success', text: `"${selectedExistingPerformance.name}" 공연이 연동되었습니다.` });
     } catch (err: any) {
       setActionMessage({ type: 'error', text: err.message || '연동에 실패했습니다.' });
     } finally {
@@ -1371,7 +1388,7 @@ export default function CrawledPerformanceDetailPage() {
         items={filteredFestivals}
         isLoading={false}
         onSearch={handleSearchFestivals}
-        onSelect={handleLinkPerformance}
+        onSelect={handleSelectExistingPerformance}
         getItemKey={(f) => f.id}
         renderItem={(f) => (
           <div>
@@ -1382,6 +1399,62 @@ export default function CrawledPerformanceDetailPage() {
           </div>
         )}
       />
+
+      {/* 기존 공연 연동 설정 모달 */}
+      <CreateModal
+        isOpen={showExistingPerformanceModal}
+        onClose={() => {
+          setShowExistingPerformanceModal(false);
+          setSelectedExistingPerformance(null);
+          setSelectedExistingLinkItems(['BASIC']);
+        }}
+        title="기존 공연 연동 설정"
+        onSubmit={handleLinkPerformance}
+        isSubmitting={isLinking}
+        submitLabel="선택한 항목으로 연동"
+      >
+        <div className="space-y-4">
+          {selectedExistingPerformance && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="font-medium text-gray-900">{selectedExistingPerformance.name}</p>
+              <p className="text-sm text-gray-600">
+                {selectedExistingPerformance.placeName} | {selectedExistingPerformance.startDate} ~ {selectedExistingPerformance.endDate}
+              </p>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">연동 항목 * (최소 1개)</label>
+            <div className="space-y-2">
+              {[
+                { value: 'BASIC', label: '기본 정보 (포스터, 교통정보, 금지물품)' },
+                { value: 'PERFORMANCE_DATE', label: '공연일 정보' },
+                { value: 'RESERVATION_INFO', label: '예매 정보' },
+                { value: 'TIMETABLE', label: '타임테이블' },
+              ].map((item) => (
+                <label key={item.value} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedExistingLinkItems.includes(item.value as any)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedExistingLinkItems([...selectedExistingLinkItems, item.value as any]);
+                      } else {
+                        setSelectedExistingLinkItems(selectedExistingLinkItems.filter(i => i !== item.value));
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-sm text-gray-700">{item.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded space-y-1">
+            <div><strong>💡 팁:</strong> 기존 공연도 새로 생성할 때와 동일하게 연동 항목을 고를 수 있습니다.</div>
+            <div>선택된 항목만 크롤링 데이터로 덮어씌워집니다.</div>
+          </div>
+        </div>
+      </CreateModal>
 
       {/* 장소 검색 모달 */}
       <SearchModal
