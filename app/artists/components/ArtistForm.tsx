@@ -14,9 +14,9 @@ interface ArtistFormProps {
 }
 
 export default function ArtistForm({ onSubmit, onCancel, initialData, isOpen }: ArtistFormProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<Artist, 'id'>>({
     name: initialData?.name || '',
-    description: initialData?.description || '',
+    description: initialData?.description ?? '',
     imageUrl: initialData?.imageUrl || '',
     aliases: initialData?.aliases || [],
   });
@@ -38,7 +38,7 @@ export default function ArtistForm({ onSubmit, onCancel, initialData, isOpen }: 
     if (initialData) {
       setFormData({
         name: initialData.name,
-        description: initialData.description,
+        description: initialData.description ?? '',
         imageUrl: initialData.imageUrl || '',
         aliases: initialData.aliases,
       });
@@ -109,7 +109,14 @@ export default function ArtistForm({ onSubmit, onCancel, initialData, isOpen }: 
     
     setIsSubmitting(true);
     try {
-      await onSubmit(formData);
+      // 설명/별명 없이도 등록 가능하도록 널/빈 배열로 정규화
+      const normalizedDescription = formData.description?.trim() || null;
+      const payload = {
+        ...formData,
+        description: normalizedDescription,
+        aliases: formData.aliases || [],
+      };
+      await onSubmit(payload);
       onCancel();
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -271,8 +278,7 @@ export default function ArtistForm({ onSubmit, onCancel, initialData, isOpen }: 
               <Label htmlFor="description" className="text-sm font-medium text-gray-700">설명</Label>
               <Textarea
                 id="description"
-                required
-                value={formData.description}
+                value={formData.description ?? ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 placeholder="아티스트에 대한 설명을 입력하세요"
@@ -285,7 +291,7 @@ export default function ArtistForm({ onSubmit, onCancel, initialData, isOpen }: 
               <Input
                 id="imageUrl"
                 type="url"
-                value={formData.imageUrl}
+                value={formData.imageUrl ?? ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
                 className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 placeholder="아티스트 이미지 URL을 입력하세요 (선택사항)"
@@ -352,7 +358,7 @@ export default function ArtistForm({ onSubmit, onCancel, initialData, isOpen }: 
             </Button>
             <Button 
               type="submit"
-              disabled={isSubmitting || !formData.name || !formData.description || !!nameError || isCheckingDuplicate}
+              disabled={isSubmitting || !formData.name.trim()}
             >
               {isSubmitting ? '저장 중...' : (initialData ? '수정' : '추가')}
             </Button>

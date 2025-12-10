@@ -10,7 +10,7 @@ export interface ArtistAlias {
 export interface Artist {
   id: number;
   name: string;
-  description: string;
+  description: string | null;
   imageUrl?: string | null;
   aliases: ArtistAlias[];
 }

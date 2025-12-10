@@ -50,7 +50,7 @@ export default function ArtistsPage() {
     
     const filtered = artists.filter(artist => 
       artist.name.toLowerCase().includes(term.toLowerCase()) ||
-      artist.description.toLowerCase().includes(term.toLowerCase()) ||
+      (artist.description || '').toLowerCase().includes(term.toLowerCase()) ||
       artist.aliases.some(alias => 
         alias.name.toLowerCase().includes(term.toLowerCase())
       )
@@ -276,7 +276,7 @@ export default function ArtistsPage() {
                     </TableCell>
                     <TableCell className="font-medium text-lg">{artist.name}</TableCell>
                     <TableCell className="text-gray-600 max-w-xs truncate">
-                      {artist.description}
+                      {artist.description || '설명 없음'}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
@@ -371,7 +371,7 @@ export default function ArtistsPage() {
                     </div>
                     <div>
                       <span className="font-medium text-gray-700">설명:</span>
-                      <p className="text-gray-900">{selectedArtist.description}</p>
+                      <p className="text-gray-900">{selectedArtist.description || '설명 없음'}</p>
                     </div>
                     <div>
                       <span className="font-medium text-gray-700">별칭:</span>
