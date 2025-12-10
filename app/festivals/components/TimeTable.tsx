@@ -14,16 +14,12 @@ import {
   updateTimeTable,
   deleteTimeTable,
   addHalls,
-  updateHall
+  updateHall,
+  Artist as ApiArtist
 } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface Artist {
-  id: number;
-  name: string;
-  description: string;
-  aliases: { id: number; name: string }[];
-}
+type Artist = Omit<ApiArtist, 'description'> & { description: string | null };
 
 interface TimeTableProps {
   timeTables: TimeTableType[];

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Artist, fetchArtists, deleteArtist, createArtist, updateArtist, addArtistAliases, deleteArtistAlias, ArtistAlias } from '@/lib/api';
+import { Artist as ApiArtist, fetchArtists, deleteArtist, createArtist, updateArtist, addArtistAliases, deleteArtistAlias, ArtistAlias } from '@/lib/api';
 import ArtistForm from './components/ArtistForm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import React from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiEye, FiSearch } from 'react-icons/fi';
 
 export default function ArtistsPage() {
+  type Artist = Omit<ApiArtist, 'description'> & { description: string | null };
   const { isAuthenticated } = useAuth();
   const [artists, setArtists] = useState<Artist[]>([]);
   const [filteredArtists, setFilteredArtists] = useState<Artist[]>([]);
